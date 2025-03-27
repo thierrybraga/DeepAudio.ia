@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Detector de Fake - DeepAudio{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-danger text-white text-center">
+        <i class="bi bi-shield-lock me-2"></i>Detector de Fake
+      </div>
+      <div class="card-body">
+        <form action="{{ url_for('fake_detector') }}" method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="voice_sample" class="form-label">Selecione uma amostra de voz:</label>
+            <input type="file" class="form-control" name="voice_sample" accept="audio/*" required>
+          </div>
+          <div class="text-center">
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-upload me-1"></i>Enviar Amostra
+            </button>
+          </div>
+        </form>
+        {% if result %}
+        <div class="mt-4 alert alert-info d-flex align-items-center">
+          <i class="bi bi-chat-left-dots me-2"></i>
+          <div>
+            <h5 class="mb-1">Resultado:</h5>
+            <p class="mb-0">{{ result }}</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
