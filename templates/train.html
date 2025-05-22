@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Treinamento do Modelo - DeepAudio{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h2 class="mb-0"><i class="bi bi-robot me-2"></i>Treinamento do Modelo</h2>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <p class="lead text-center">Aqui você pode iniciar o processo de treinamento do seu modelo de detecção de deepfake. Certifique-se de que um dataset tenha sido carregado e esteja pronto para o treinamento.</p>
+
+                    <hr>
+
+                    {% if dataset_exists %}
+                        <div class="alert alert-success text-center" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>Dataset pronto para treinamento!
+                        </div>
+                        <p class="text-center">Clique no botão abaixo para iniciar o treinamento do modelo. Isso pode levar alguns minutos, dependendo do tamanho do seu dataset e da capacidade do seu sistema.</p>
+                        <div class="d-grid gap-2">
+                            <form action="{{ url_for('train') }}" method="post">
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="bi bi-play-circle me-2"></i>Iniciar Treinamento
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning text-center" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Nenhum dataset encontrado.
+                        </div>
+                        <p class="text-center">Por favor, retorne à <a href="{{ url_for('index') }}">página inicial</a> para fazer o upload de um dataset ZIP antes de tentar treinar o modelo.</p>
+                    {% endif %}
+
+                    <div class="mt-4 text-center">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left-circle me-2"></i>Voltar para a Página Inicial
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

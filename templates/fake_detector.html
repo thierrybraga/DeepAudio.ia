@@ -8,23 +8,44 @@
         <i class="bi bi-shield-lock me-2"></i>Detector de Fake
       </div>
       <div class="card-body">
-        <form action="{{ url_for('fake_detector') }}" method="post" enctype="multipart/form-data">
+        <form action="{{ url_for('fake_detector') }}" method="post" enctype="multipart/form-data" id="predictionForm">
           <div class="mb-3">
             <label for="voice_sample" class="form-label">Selecione uma amostra de voz:</label>
             <input type="file" class="form-control" name="voice_sample" accept="audio/*" required>
           </div>
           <div class="text-center">
-            <button type="submit" class="btn btn-danger">
+            <button type="submit" class="btn btn-danger" id="submitPredictionBtn" {% if not model_exists %}disabled{% endif %}>
               <i class="bi bi-upload me-1"></i>Enviar Amostra
             </button>
           </div>
         </form>
+
+        {% if not model_exists %}
+        <small class="text-danger mt-2 d-block text-center">Modelo não treinado. Treine um modelo primeiro na página inicial.</small>
+        {% endif %}
+
+        {# Bloco para exibir o resultado da predição #}
         {% if result %}
-        <div class="mt-4 alert alert-info d-flex align-items-center">
-          <i class="bi bi-chat-left-dots me-2"></i>
+        <div class="mt-4 p-3 border rounded
+          {% if result.label == 'FAKE' %}
+            border-danger bg-danger-subtle text-danger
+          {% else %}
+            border-success bg-success-subtle text-success
+          {% endif %}
+          d-flex align-items-center">
+          <i class="bi
+            {% if result.label == 'FAKE' %}
+              bi-exclamation-triangle-fill
+            {% else %}
+              bi-check-circle-fill
+            {% endif %}
+            me-3 display-5"></i>
           <div>
-            <h5 class="mb-1">Resultado:</h5>
-            <p class="mb-0">{{ result }}</p>
+            <h5 class="mb-1 fw-bold">Resultado para '{{ result.filename }}':</h5>
+            <p class="mb-0">
+              Este áudio é **<span class="fw-bold">{{ result.label }}</span>** com confiança de **{{ result.confidence }}**.
+              (Método: {{ result.method }})
+            </p>
           </div>
         </div>
         {% endif %}
@@ -32,4 +53,25 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const predictionForm = document.getElementById('predictionForm');
+    const submitPredictionBtn = document.getElementById('submitPredictionBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay'); // O overlay global do base.html
+
+    if (predictionForm) {
+      predictionForm.addEventListener('submit', function() {
+        // Desabilita o botão e mostra o overlay
+        submitPredictionBtn.disabled = true;
+        submitPredictionBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
+        if (loadingOverlay) {
+          loadingOverlay.style.display = 'flex'; // Mostra o overlay de carregamento
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}
