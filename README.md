@@ -1,136 +1,140 @@
-Claro! Aqui está um `README.md` formatado profissionalmente para o projeto **DeepAudio.ia**, com seções bem organizadas, linguagem clara e pronta para ser usada no GitHub:
+# DeepAudio.ia
 
----
+## Descrição
 
-```markdown
-# DeepAudio.ia 🎧🤖
+DeepAudio.ia é uma aplicação web baseada em Flask projetada para processar arquivos de áudio, extrair características, treinar um modelo de Rede Neural Convolucional (CNN) e detectar áudio "falso" (ou seja, áudio que não corresponde ao modelo treinado). O projeto é ideal para pesquisadores e desenvolvedores interessados em aprendizado de máquina aplicado ao processamento de áudio.
 
-**DeepAudio.ia** é uma aplicação web baseada em Flask projetada para processar arquivos de áudio, extrair características, treinar um modelo de Rede Neural Convolucional (CNN) e detectar áudios "falsos" — ou seja, amostras que não correspondem ao padrão do modelo treinado.
+A aplicação oferece as seguintes funcionalidades:
+- **Upload de Dataset:** Permite o upload de um arquivo `.zip` contendo um conjunto de dados de áudio.
+- **Extração de Características:** Processa arquivos de áudio para extrair características de pitch, gerando arquivos CSV.
+- **Treinamento do Modelo:** Treina um modelo CNN com base nas características extraídas.
+- **Detecção de Áudio Falso:** Permite o upload de uma amostra de voz para verificar se ela corresponde ao modelo treinado.
 
-Ideal para pesquisadores, estudantes e desenvolvedores interessados em aplicações de machine learning no processamento de áudio.
+## Sumário
 
----
+- [Instalação](#instalação)
+- [Uso](#uso)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Como Funciona](#como-funciona)
+- [Pré-requisitos](#pré-requisitos)
+- [Contribuições](#contribuições)
+- [Licença](#licença)
+- [Contato](#contato)
+- [Agradecimentos](#agradecimentos)
 
-## 🧠 Funcionalidades
+## Instalação
 
-- **Upload de Dataset**: Aceita arquivos `.zip` com conjuntos de dados de áudio.
-- **Extração de Características (Pitch)**: Gera arquivos CSV com características extraídas.
-- **Treinamento de Modelo CNN**: Usa as características para treinar uma rede neural.
-- **Detecção de Áudio Falso**: Compara uma amostra de voz ao modelo treinado e classifica como *real* ou *falsa*.
+Para configurar o projeto localmente, siga os passos abaixo:
 
----
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/thierrybraga/DeepAudio.ia.git
+   ```
 
-## 📦 Instalação
+2. Navegue até o diretório do projeto:
+   ```bash
+   cd DeepAudio.ia
+   ```
 
-Siga os passos abaixo para configurar o projeto localmente:
+3. Crie um ambiente virtual (recomendado):
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # No Windows: venv\Scripts\activate
+   ```
 
-```bash
-# Clone o repositório
-git clone https://github.com/thierrybraga/DeepAudio.ia.git
-cd DeepAudio.ia
+4. Instale as dependências listadas em `requirements.txt`:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# Crie e ative um ambiente virtual
-python -m venv venv
-source venv/bin/activate  # No Windows: venv\Scripts\activate
+## Uso
 
-# Instale as dependências
-pip install -r requirements.txt
-```
-
----
-
-## 🚀 Uso
-
-Inicie a aplicação com:
-
+Para iniciar a aplicação, execute o seguinte comando no terminal:
 ```bash
 python app.py
 ```
 
-Depois, acesse em seu navegador: [http://localhost:5000](http://localhost:5000)
+Acesse a aplicação em um navegador web no endereço `http://localhost:5000` (ou a porta configurada no código).
 
----
+### Funcionalidades da Aplicação
 
-## 📁 Estrutura do Projeto
+1. **Upload de Dataset:**
+   - Faça o upload de um arquivo `.zip` contendo arquivos de áudio.
+   - Certifique-se de que o dataset esteja organizado adequadamente para a extração de características.
 
-| Caminho/Arquivo       | Descrição                                                                 |
-|-----------------------|---------------------------------------------------------------------------|
-| `app.py`              | Aplicação principal Flask com todas as rotas.                             |
-| `Voice2data.py`       | Script para extração de características (pitch).                          |
-| `TrainModel.py`       | Define e treina a CNN.                                                     |
-| `Predictor.py`        | Realiza a classificação da amostra de áudio.                              |
-| `requirements.txt`    | Lista de bibliotecas necessárias.                                         |
-| `uploads/`            | Armazena arquivos de entrada do usuário.                                  |
-| `dataset/`            | Onde os datasets extraídos do `.zip` são salvos.                          |
-| `features/`           | Contém os arquivos CSV gerados pela extração.                             |
-| `templates/`          | HTMLs da aplicação: `index.html` e `fake_detector.html`.                  |
-| `readme.md`           | Documentação do projeto (este arquivo).                                   |
+2. **Extração de Características (Pitch Extract):**
+   - Processa os arquivos de áudio para extrair características de pitch usando o script `Voice2data.py`.
+   - Os resultados são salvos como arquivos CSV no diretório `features/`.
 
----
+3. **Treinamento do Modelo (Train Model):**
+   - Treina um modelo CNN com os dados extraídos, utilizando o script `TrainModel.py`.
+   - O modelo treinado é salvo para uso na detecção.
 
-## ⚙️ Como Funciona
+4. **Detecção de Áudio Falso (Fake Detector):**
+   - Faça o upload de uma amostra de voz.
+   - A aplicação extrai características da amostra e usa o modelo treinado para classificá-la como "real" ou "falsa".
 
-1. **Extração de Características**
-   - Os áudios são processados por `Voice2data.py`, que extrai dados como pitch e salva em CSV.
+## Estrutura do Projeto
 
-2. **Treinamento**
-   - O `TrainModel.py` define e treina uma CNN usando os dados extraídos.
+O repositório está organizado da seguinte forma:
 
-3. **Detecção**
-   - Uma nova amostra é enviada.
-   - O `Predictor.py` extrai suas características e as compara ao modelo para classificar como *real* ou *falsa*.
+| Arquivo/Diretório       | Descrição                                                                 |
+|-------------------------|---------------------------------------------------------------------------|
+| `app.py`                | Aplicação Flask principal com rotas para upload, extração, treinamento e detecção. |
+| `Voice2data.py`         | Script para processar arquivos de áudio e extrair características de pitch. |
+| `TrainModel.py`         | Script que define e treina o modelo CNN para classificação de áudio.       |
+| `Predictor.py`          | Script para realizar predições usando o modelo treinado.                   |
+| `requirements.txt`      | Lista de dependências do projeto.                                         |
+| `readme.md`             | Documentação do projeto (este arquivo).                                    |
+| `uploads/`              | Diretório para armazenar arquivos enviados (dataset e amostras de voz).    |
+| `dataset/`              | Diretório para extrair o conteúdo do arquivo `.zip` do dataset.            |
+| `features/`             | Diretório para salvar arquivos CSV com características extraídas.          |
+| `templates/`            | Diretório com templates HTML:                                             |
+| `index.html`            | Página inicial para upload, extração e treinamento.                        |
+| `fake_detector.html`    | Página para upload de amostras de voz e exibição de resultados.            |
 
----
+## Como Funciona
 
-## 📌 Pré-requisitos
+1. **Extração de Características:**
+   - Os arquivos de áudio são processados pelo script `Voice2data.py` para extrair características de pitch.
+   - As características são salvas em arquivos CSV no diretório `features/`.
 
-- Python 3.x
-- Navegador web moderno
-- Conhecimento básico em:
-  - Python
-  - Aprendizado de Máquina
-  - Processamento de Áudio
+2. **Treinamento do Modelo:**
+   - O script `TrainModel.py` define a arquitetura do modelo CNN e realiza o treinamento com base nas características extraídas.
+   - O modelo treinado é salvo para uso posterior.
 
----
+3. **Detecção de Áudio Falso:**
+   - Uma amostra de voz é processada para extrair características, da mesma forma que no treinamento.
+   - O script `Predictor.py` usa o modelo treinado para classificar a amostra como "real" (corresponde ao modelo) ou "falsa" (não corresponde).
 
-## 🤝 Contribuições
+## Pré-requisitos
 
-Contribuições são bem-vindas!
+- **Python 3.x**: Necessário para executar a aplicação e os scripts.
+- **Navegador Web**: Para acessar a interface da aplicação Flask.
+- **Conhecimento Básico**: Familiaridade com Python e conceitos de aprendizado de máquina é recomendada para entender e modificar o código.
 
-1. Fork o projeto.
-2. Crie uma nova branch: `git checkout -b minha-alteracao`.
-3. Faça suas alterações.
-4. Envie um Pull Request com uma descrição clara.
+## Contribuições
 
-Antes de grandes mudanças, sugerimos abrir uma issue para discussão.
+Contribuições são bem-vindas! Para contribuir:
+1. Faça um fork do repositório.
+2. Crie uma branch para suas alterações: `git checkout -b minha-alteracao`.
+3. Envie um pull request com uma descrição clara das mudanças.
 
----
+Por favor, abra um issue para discutir problemas ou sugestões antes de enviar alterações significativas.
 
-## 📄 Licença
+## Licença
 
-*A licença específica ainda não foi definida.* Verifique o repositório oficial para atualizações sobre os termos de uso.
+A licença específica do projeto não foi fornecida nas informações disponíveis. Verifique o repositório para detalhes sobre a licença aplicável.
 
----
+## Contato
 
-## 📬 Contato
+Para perguntas ou suporte, entre em contato com o mantenedor do projeto através do GitHub: [thierrybraga](https://github.com/thierrybraga).
 
-Para dúvidas, sugestões ou suporte, entre em contato pelo GitHub: [@thierrybraga](https://github.com/thierrybraga)
+## Agradecimentos
 
----
+Este projeto pode utilizar bibliotecas de terceiros, como:
+- [Flask](https://flask.palletsprojects.com/) para a aplicação web.
+- [Librosa](https://librosa.org/) ou outras bibliotecas de processamento de áudio para extração de características.
+- [TensorFlow](https://www.tensorflow.org/) ou [PyTorch](https://pytorch.org/) para o modelo CNN (dependendo da implementação).
 
-## 🙏 Agradecimentos
-
-Este projeto pode utilizar:
-
-- [Flask](https://flask.palletsprojects.com/) — Web framework.
-- [Librosa](https://librosa.org/) — Análise de áudio.
-- [TensorFlow](https://www.tensorflow.org/) ou [PyTorch](https://pytorch.org/) — Redes neurais.
-
-Agradecemos aos contribuidores e à comunidade de código aberto ❤️
-
----
-```
-
----
-
-Se quiser, posso também gerar uma versão com badges, instruções em inglês, ou um layout compatível com o GitHub Pages. Deseja isso?
+Agradecimentos a todos os contribuidores e à comunidade de código aberto.
