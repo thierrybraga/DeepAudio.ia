@@ -126,15 +126,4 @@ Por favor, abra um issue para discutir problemas ou sugestões antes de enviar a
 
 A licença específica do projeto não foi fornecida nas informações disponíveis. Verifique o repositório para detalhes sobre a licença aplicável.
 
-## Contato
 
-Para perguntas ou suporte, entre em contato com o mantenedor do projeto através do GitHub: [thierrybraga](https://github.com/thierrybraga).
-
-## Agradecimentos
-
-Este projeto pode utilizar bibliotecas de terceiros, como:
-- [Flask](https://flask.palletsprojects.com/) para a aplicação web.
-- [Librosa](https://librosa.org/) ou outras bibliotecas de processamento de áudio para extração de características.
-- [TensorFlow](https://www.tensorflow.org/) ou [PyTorch](https://pytorch.org/) para o modelo CNN (dependendo da implementação).
-
-Agradecimentos a todos os contribuidores e à comunidade de código aberto.
