@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Register - DeepAudio{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center pt-6 pb-6">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="feature-card">
+            <div class="card-content text-center">
+                <div class="feature-icon icon-tertiary mb-4">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2 class="feature-title mb-4">Create Your DeepAudio Account</h2>
+                <p class="feature-description-small mb-4">Join us and start exploring the world of audio analysis!</p>
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-info">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required aria-label="Username">
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label text-info">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required aria-label="Password">
+                    </div>
+                    <button type="submit" class="btn-primary-custom w-100">
+                        <span class="btn-content">Register</span>
+                    </button>
+                </form>
+                <p class="mt-4 text-muted">Already have an account? <a href="{{ url_for('login') }}" class="text-primary-color">Login here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

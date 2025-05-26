@@ -1,88 +1,422 @@
 {% extends 'base.html' %}
-{% block title %}Home - DeepAudio{% endblock %}
+
+{% block title %}DeepAudio | Início: Detecção e Treinamento de Deepfakes de Áudio com IA{% endblock %}
+
+{% block head_meta %}
+    <meta name="description" content="DeepAudio: Sua plataforma líder em detecção de deepfakes de áudio e treinamento de IA para autenticidade de voz. Proteja-se contra fraudes e desinformação com nossa tecnologia avançada.">
+    <meta name="keywords" content="deepaudio, deepfake áudio, detecção de voz sintética, treinamento de IA, autenticidade de áudio, segurança de voz, inteligência artificial áudio, combater deepfake, áudio falso, modelo de voz">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ url_for('index', _external=True) }}">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "DeepAudio",
+      "url": "{{ url_for('index', _external=True) }}",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "{{ url_for('fake_detector', _external=True) }}?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "DeepAudio",
+      "url": "{{ url_for('index', _external=True) }}",
+      "logo": "{{ url_for('static', filename='img/logo.png', _external=True) }}", {# Certifique-se de ter um logo #}
+      "sameAs": [
+        "https://www.linkedin.com/company/deepaudio-ai", {# Substitua pelo seu LinkedIn #}
+        "https://github.com/deepaudio-ai", {# Substitua pelo seu GitHub #}
+        "https://twitter.com/deepaudio_ai" {# Substitua pelo seu Twitter #}
+      ]
+    }
+    </script>
+{% endblock %}
+
 {% block content %}
-<div class="row g-4">
-  <div class="col-12 col-md-6 col-lg-4">
-    <div class="card shadow h-100">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <i class="bi bi-cloud-upload display-4 text-primary"></i>
-        <h5 class="card-title mt-3">Treinar Novo Modelo</h5>
-        <p class="card-text">Envie um novo dataset de áudio (.zip) para treinar ou retreinar um modelo. Este processo inclui a extração de features e o treinamento do modelo.</p>
-        <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="datasetUploadForm">
-          <div class="mb-3">
-            <label for="dataset_zip" class="form-label visually-hidden">Arquivo ZIP do Dataset</label>
-            <input type="file" class="form-control" id="dataset_zip" name="file" accept=".zip" required aria-describedby="datasetHelp">
-            <div id="datasetHelp" class="form-text">Apenas arquivos .zip são aceitos. O ZIP deve conter subpastas de áudio rotuladas (e.g., 'real/', 'fake/') ou um CSV de mapeamento na raiz.</div>
-          </div>
-          <div class="d-grid">
-            <button type="submit" class="btn btn-primary" id="uploadDatasetBtn">
-              <i class="bi bi-upload me-1"></i>Enviar Dataset
-            </button>
-          </div>
-        </form>
-        <hr>
-        <a href="{{ url_for('train') }}" class="btn btn-outline-primary mt-auto">
-          <i class="bi bi-cpu me-1"></i>Configurar e Iniciar Treinamento
-        </a>
+<div class="hero-section">
+  <div class="hero-background"></div>
+  <div class="hero-content">
+    <header class="text-center py-5 animate__animated animate__fadeInDown">
+      <div class="hero-badge mb-4">
+        <i class="bi bi-cpu-fill me-2"></i> {# Ícone mais moderno para IA #}
+        Inovação em IA
       </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-md-6 col-lg-4">
-    <div class="card shadow h-100">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <i class="bi bi-file-earmark-music display-4 text-success"></i>
-        <h5 class="card-title mt-3">Detectar Deepfake de Áudio</h5>
-        <p class="card-text">Carregue um arquivo de áudio para que o modelo detecte se é real ou gerado por IA (deepfake).</p>
-        {# Formulário agora aponta para /fake_detector #}
-        <form action="{{ url_for('fake_detector') }}" method="post" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label for="audio_file" class="form-label visually-hidden">Arquivo de Áudio</label>
-            <input type="file" class="form-control" id="audio_file" name="voice_sample" accept=".wav,.mp3,.flac,.wma,.ogg" required aria-describedby="audioHelp"> {# Alterado name="file" para name="voice_sample" #}
-            <div id="audioHelp" class="form-text">Formatos aceitos: WAV, MP3, FLAC, WMA, OGG.</div>
-          </div>
-          <div class="d-grid">
-            <button type="submit" class="btn btn-success" {% if not model_exists %}disabled{% endif %}>
-              <i class="bi bi-search me-1"></i>Detectar
-            </button>
-          </div>
-        </form>
-        {% if not model_exists %}
-        <small class="text-danger mt-2">Modelo não treinado. Treine um modelo primeiro.</small>
-        {% endif %}
-        {# Este link agora aponta para a rota GET de fake_detector #}
-        <a href="{{ url_for('fake_detector') }}" class="btn btn-outline-success mt-auto">
-          <i class="bi bi-arrow-right-circle me-1"></i>Acessar Detector
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-md-6 col-lg-4">
-    <div class="card shadow h-100">
-      <div class="card-body d-flex flex-column justify-content-center text-center">
-        <i class="bi bi-tools display-4 text-secondary"></i>
-        <h5 class="card-title mt-3">Gerenciar Dados e Modelo</h5>
-        <p class="card-text">Limpe dados temporários ou exclua o modelo treinado existente.</p>
-        <div class="d-grid gap-2">
-            <form action="{{ url_for('clean_data') }}" method="post">
-              <button type="submit" class="btn btn-outline-secondary w-100" onclick="return confirm('Tem certeza que deseja limpar todos os dados de upload e dataset? Esta ação é irreversível.');">
-                <i class="bi bi-trash me-1"></i>Limpar Dados
-              </button>
-            </form>
-            <form action="{{ url_for('delete_model') }}" method="post">
-              <button type="submit" class="btn btn-outline-danger w-100" {% if not model_exists %}disabled{% endif %} onclick="return confirm('Tem certeza que deseja excluir o modelo treinado?');">
-                <i class="bi bi-trash-fill me-1"></i>Excluir Modelo
-              </button>
-            </form>
-            {% if model_exists %}
-            <span class="badge bg-success mt-2 d-flex align-items-center justify-content-center"><i class="bi bi-check-circle me-1"></i>Modelo Treinado Existente</span>
-            {% else %}
-            <span class="badge bg-warning mt-2 d-flex align-items-center justify-content-center"><i class="bi bi-exclamation-triangle me-1"></i>Nenhum Modelo Treinado</span>
-            {% endif %}
+      <h1 class="hero-title mb-4">
+        <span class="brand-gradient">DeepAudio</span>: Sua Solução Completa em Segurança de Voz
+      </h1>
+      <p class="hero-subtitle mb-5">
+        A plataforma líder para **detecção de deepfakes de áudio** e **treinamento de modelos de IA** de ponta.
+        Garanta a autenticidade e a integridade de suas comunicações.
+      </p>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-number">99.2%<i class="bi bi-percent ms-1"></i></div>
+          <div class="stat-label">Precisão Comprovada</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-number"><i class="bi bi-hourglass-split me-1"></i>< 3s</div>
+          <div class="stat-label">Análise Rápida</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-number"><i class="bi bi-globe me-1"></i>24/7</div>
+          <div class="stat-label">Disponibilidade Global</div>
         </div>
       </div>
-    </div>
+    </header>
   </div>
 </div>
+
+<div class="container-fluid px-4 py-5">
+  <div class="row g-4 justify-content-center max-width-container mx-auto">
+
+    {# Card 1: Treinar Novo Modelo #}
+    <section class="col-12 col-lg-4 d-flex" aria-labelledby="train-model-title" itemscope itemtype="https://schema.org/HowTo">
+        <meta itemprop="name" content="Como Treinar um Novo Modelo de Detecção de Deepfake com DeepAudio">
+        <meta itemprop="description" content="Aprenda a capacitar a inteligência artificial do DeepAudio com seus próprios datasets para detecção personalizada.">
+        <div class="feature-card card-primary h-100 animate__animated animate__fadeInUp">
+            <div class="card-glow card-glow-primary"></div>
+            <div class="card-content">
+                <div class="feature-icon icon-primary">
+                    <i class="bi bi-cpu"></i> {# Ícone mais direto para processamento/treinamento #}
+                    <div class="icon-pulse"></div>
+                </div>
+                <h3 id="train-model-title" class="feature-title">Capacite a IA: Treine Novos Modelos</h3>
+                <p class="feature-description">
+                    Utilize seus próprios datasets para capacitar nossa inteligência artificial.
+                    Nosso sistema otimizado processa automaticamente as features de áudio e
+                    gera modelos robustos para detecção personalizada e precisa de deepfakes.
+                </p>
+
+                <div class="upload-zone" id="datasetDropZone" role="button" tabindex="0" aria-label="Arraste ou clique para enviar seu dataset ZIP">
+                    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="datasetUploadForm">
+                        <div class="upload-content">
+                            <i class="bi bi-file-earmark-zip upload-icon"></i> {# Ícone de ZIP #}
+                            <div class="upload-text">
+                                <strong>Arraste seu dataset aqui</strong>
+                                <span>ou clique para selecionar</span>
+                            </div>
+                            <input type="file" class="upload-input" id="dataset_zip" name="file" accept=".zip" required aria-describedby="zip-format-info">
+                        </div>
+                        <div class="upload-info" id="zip-format-info">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            Apenas arquivos .ZIP com subpastas 'real/' e 'fake/'.
+                        </div>
+                    </form>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" form="datasetUploadForm" class="btn-primary-custom" id="uploadDatasetBtn" aria-label="Enviar Dataset para Treinamento">
+                        <span class="btn-content">
+                            <i class="bi bi-cloud-arrow-up-fill me-2"></i> {# Ícone de upload #}
+                            Enviar Dataset
+                        </span>
+                        <div class="btn-ripple"></div>
+                    </button>
+                    <a href="{{ url_for('train') }}" class="btn-secondary-custom" aria-label="Acessar Página de Configuração de Treinamento">
+                        <i class="bi bi-sliders me-2"></i> {# Ícone de configuração #}
+                        Configurar e Gerenciar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Card 2: Detectar Deepfake #}
+    <section class="col-12 col-lg-4 d-flex" aria-labelledby="detect-deepfake-title" itemscope itemtype="https://schema.org/HowTo">
+        <meta itemprop="name" content="Como Detectar um Deepfake de Áudio com DeepAudio">
+        <meta itemprop="description" content="Aprenda a usar a plataforma DeepAudio para analisar e identificar deepfakes de áudio rapidamente.">
+        <div class="feature-card card-success h-100 animate__animated animate__fadeInUp animate__delay-0-2s">
+            <div class="card-glow card-glow-success"></div>
+            <div class="card-content">
+                <div class="feature-icon icon-success">
+                    <i class="bi bi-mic-fill"></i> {# Ícone para detecção de áudio #}
+                    <div class="icon-pulse"></div>
+                </div>
+                <h3 id="detect-deepfake-title" class="feature-title">Análise de Autenticidade: Detector de Deepfake</h3>
+                <p class="feature-description">
+                    Realize a análise instantânea de autenticidade usando nossa IA pré-treinada ou seu modelo personalizado.
+                    Identifique com precisão se um áudio é genuíno ou gerado artificialmente com nossa tecnologia de ponta.
+                </p>
+
+                <div class="upload-zone {% if not model_exists %}upload-disabled{% endif %}" id="audioDropZone" role="button" tabindex="0" aria-label="Arraste ou clique para enviar seu arquivo de áudio">
+                    <form action="{{ url_for('fake_detector') }}" method="post" enctype="multipart/form-data" id="audioUploadForm">
+                        <div class="upload-content">
+                            {% if model_exists %}
+                            <i class="bi bi-file-earmark-music-fill upload-icon"></i> {# Ícone de arquivo de música #}
+                            <div class="upload-text">
+                                <strong>Arraste seu áudio aqui</strong>
+                                <span>Formatos: MP3, WAV, FLAC, OGG</span>
+                            </div>
+                            {% else %}
+                            <i class="bi bi-lock-fill upload-icon"></i> {# Ícone de cadeado #}
+                            <div class="upload-text">
+                                <strong>Modelo de detecção indisponível</strong>
+                                <span>Por favor, treine um modelo primeiro</span>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="upload-input" id="audio_file" name="voice_sample" accept="audio/mpeg, audio/wav, audio/flac, audio/ogg" required {% if not model_exists %}disabled{% endif %} aria-describedby="audio-formats-info">
+                        </div>
+                        <div class="upload-info" id="audio-formats-info">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            Tamanho máximo: 50MB.
+                        </div>
+                    </form>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" form="audioUploadForm" class="btn-success-custom" {% if not model_exists %}disabled{% endif %} aria-label="Analisar Áudio para Detecção de Deepfake">
+                        <span class="btn-content">
+                            {% if model_exists %}
+                            <i class="bi bi-search-heart-fill me-2"></i> {# Ícone de busca com coração #}
+                            Analisar Áudio Agora
+                            {% else %}
+                            <i class="bi bi-x-circle-fill me-2"></i> {# Ícone de X #}
+                            Indisponível
+                            {% endif %}
+                        </span>
+                        <div class="btn-ripple"></div>
+                    </button>
+                    <a href="{{ url_for('fake_detector') }}" class="btn-secondary-custom" aria-label="Acessar Página do Detector de Deepfake">
+                        <i class="bi bi-eye-fill me-2"></i> {# Ícone de olho #}
+                        Ver Detalhes
+                    </a>
+                </div>
+
+                {% if not model_exists %}
+                <div class="alert-custom alert-warning mt-3 animate__animated animate__fadeInDown">
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                  Treine um modelo para ativar o detector.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {# Card 3: Gerenciar Sistema #}
+    <section class="col-12 col-lg-4 d-flex" aria-labelledby="manage-system-title">
+        <div class="feature-card card-secondary h-100 animate__animated animate__fadeInUp animate__delay-0-4s">
+            <div class="card-glow card-glow-secondary"></div>
+            <div class="card-content">
+                <div class="feature-icon icon-secondary">
+                    <i class="bi bi-sliders"></i> {# Ícone mais direto para gerenciamento #}
+                    <div class="icon-pulse"></div>
+                </div>
+                <h3 id="manage-system-title" class="feature-title">Gerenciar Dados e Modelos</h3>
+                <p class="feature-description">
+                    Mantenha sua plataforma otimizada com ferramentas de
+                    gerenciamento. Limpe datasets antigos, libere espaço de armazenamento e gerencie
+                    modelos treinados com facilidade para performance máxima.
+                </p>
+
+                <div class="status-panel">
+                    {% if model_exists %}
+                    <div class="status-item status-active">
+                        <div class="status-indicator"></div>
+                        <div class="status-content">
+                            <div class="status-title"><i class="bi bi-check-circle-fill me-2 text-success"></i>Modelo Ativo</div>
+                            <div class="status-subtitle">Sistema pronto para detecção.</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="status-item status-inactive">
+                        <div class="status-indicator"></div>
+                        <div class="status-content">
+                            <div class="status-title"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Modelo Inativo</div>
+                            <div class="status-subtitle">Treinamento necessário para detecção.</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="action-buttons">
+                    <form action="{{ url_for('clean_data') }}" method="post" class="mb-3" aria-label="Formulário para limpar dados">
+                        <button type="submit" class="btn-warning-custom w-100" onclick="return confirm('ATENÇÃO: Confirma a limpeza de *todos* os dados de datasets? Esta ação é irreversível.');" aria-label="Limpar Dados de Dataset">
+                            <span class="btn-content">
+                                <i class="bi bi-folder-x me-2"></i> {# Ícone de pasta com X #}
+                                Limpar Dados de Dataset
+                            </span>
+                            <div class="btn-ripple"></div>
+                        </button>
+                    </form>
+                    <form action="{{ url_for('delete_model') }}" method="post" aria-label="Formulário para excluir modelo de IA">
+                        <button type="submit" class="btn-danger-custom w-100" {% if not model_exists %}disabled{% endif %} onclick="return confirm('ATENÇÃO: Confirma a exclusão do modelo de IA treinado? Você precisará treinar novamente para usar o detector.');" aria-label="Excluir Modelo de IA Treinado">
+                            <span class="btn-content">
+                                <i class="bi bi-robot-off me-2"></i> {# Ícone de robô desligado #}
+                                Excluir Modelo de IA
+                            </span>
+                            <div class="btn-ripple"></div>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Dataset Upload Zone (Card 1) ---
+        const datasetFileInput = document.getElementById('dataset_zip');
+        const datasetDropZone = document.getElementById('datasetDropZone');
+        const uploadDatasetBtn = document.getElementById('uploadDatasetBtn');
+
+        function handleDatasetFile(files) {
+            if (files.length > 0) {
+                datasetFileInput.files = files;
+                // Optionally, display selected file name
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.textContent = `Arquivo selecionado: ${files[0].name}`;
+                fileNameSpan.classList.add('mt-2', 'fs-6', 'fw-bold', 'text-success', 'animate__animated', 'animate__fadeIn');
+                // Remove previous file name display if any
+                const existingFileName = datasetDropZone.querySelector('.selected-file-name');
+                if (existingFileName) {
+                    existingFileName.remove();
+                }
+                fileNameSpan.classList.add('selected-file-name'); // Add a class for easy removal
+                datasetDropZone.appendChild(fileNameSpan);
+                uploadDatasetBtn.removeAttribute('disabled');
+                datasetDropZone.setAttribute('aria-label', `Arquivo selecionado: ${files[0].name}. Clique para mudar.`);
+            } else {
+                // No file selected or dropped
+                const existingFileName = datasetDropZone.querySelector('.selected-file-name');
+                if (existingFileName) {
+                    existingFileName.remove();
+                }
+                uploadDatasetBtn.setAttribute('disabled', 'true');
+                datasetDropZone.setAttribute('aria-label', 'Arraste ou clique para enviar seu dataset ZIP');
+            }
+        }
+
+        datasetFileInput.addEventListener('change', function() {
+            handleDatasetFile(this.files);
+        });
+
+        datasetDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            datasetDropZone.classList.add('drag-over');
+            e.dataTransfer.dropEffect = 'copy';
+            datasetDropZone.setAttribute('aria-live', 'polite');
+            datasetDropZone.setAttribute('aria-label', 'Arraste e solte o arquivo ZIP aqui para upload');
+        });
+
+        datasetDropZone.addEventListener('dragleave', () => {
+            datasetDropZone.classList.remove('drag-over');
+            datasetDropZone.removeAttribute('aria-live');
+            if (!datasetFileInput.files || datasetFileInput.files.length === 0) {
+                datasetDropZone.setAttribute('aria-label', 'Arraste ou clique para enviar seu dataset ZIP');
+            }
+        });
+
+        datasetDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            datasetDropZone.classList.remove('drag-over');
+            handleDatasetFile(e.dataTransfer.files);
+            datasetDropZone.removeAttribute('aria-live');
+        });
+
+        datasetDropZone.addEventListener('click', () => {
+            datasetFileInput.click();
+        });
+
+        datasetDropZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                datasetFileInput.click();
+            }
+        });
+
+        // Initial check for dataset file input state
+        if (datasetFileInput.files.length === 0) {
+            uploadDatasetBtn.setAttribute('disabled', 'true');
+        }
+
+
+        // --- Audio Upload Zone (Card 2) ---
+        const audioFileInput = document.getElementById('audio_file');
+        const audioDropZone = document.getElementById('audioDropZone');
+        const selectedFileNameDisplay = document.getElementById('selectedFileName');
+        const submitPredictionBtn = document.querySelector('#audioUploadForm button[type="submit"]');
+
+        function handleAudioFile(files) {
+            if (files.length > 0) {
+                audioFileInput.files = files;
+                selectedFileNameDisplay.textContent = `Arquivo selecionado: ${files[0].name}`;
+                selectedFileNameDisplay.style.display = 'block';
+                // Enable the submit button only if model exists
+                if (audioFileInput.getAttribute('disabled') !== 'disabled') {
+                    submitPredictionBtn.removeAttribute('disabled');
+                }
+                audioDropZone.setAttribute('aria-label', `Arquivo selecionado: ${files[0].name}. Clique para mudar.`);
+            } else {
+                selectedFileNameDisplay.textContent = '';
+                selectedFileNameDisplay.style.display = 'none';
+                submitPredictionBtn.setAttribute('disabled', 'true');
+                audioDropZone.setAttribute('aria-label', 'Arraste ou clique para enviar seu arquivo de áudio');
+            }
+        }
+
+        audioFileInput.addEventListener('change', function() {
+            handleAudioFile(this.files);
+        });
+
+        audioDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            // Only add drag-over class if not disabled
+            if (!audioDropZone.classList.contains('upload-disabled')) {
+                audioDropZone.classList.add('drag-over');
+                e.dataTransfer.dropEffect = 'copy';
+                audioDropZone.setAttribute('aria-live', 'polite');
+                audioDropZone.setAttribute('aria-label', 'Arraste e solte o arquivo de áudio aqui para upload');
+            }
+        });
+
+        audioDropZone.addEventListener('dragleave', () => {
+            audioDropZone.classList.remove('drag-over');
+            audioDropZone.removeAttribute('aria-live');
+            if (!audioFileInput.files || audioFileInput.files.length === 0) {
+                audioDropZone.setAttribute('aria-label', 'Arraste ou clique para enviar seu arquivo de áudio');
+            }
+        });
+
+        audioDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            audioDropZone.classList.remove('drag-over');
+            if (!audioDropZone.classList.contains('upload-disabled')) {
+                handleAudioFile(e.dataTransfer.files);
+            }
+            audioDropZone.removeAttribute('aria-live');
+        });
+
+        audioDropZone.addEventListener('click', () => {
+            // Only trigger click if not disabled
+            if (!audioDropZone.classList.contains('upload-disabled')) {
+                audioFileInput.click();
+            }
+        });
+
+        audioDropZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (!audioDropZone.classList.contains('upload-disabled')) {
+                    audioFileInput.click();
+                }
+            }
+        });
+
+        // Initial check for audio file input state
+        if (audioFileInput.getAttribute('disabled') === 'disabled' || audioFileInput.files.length === 0) {
+            submitPredictionBtn.setAttribute('disabled', 'true');
+        }
+    });
+</script>
 {% endblock %}

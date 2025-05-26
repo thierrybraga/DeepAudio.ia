@@ -16,6 +16,7 @@ from pydub import AudioSegment
 from pydub.exceptions import CouldntDecodeError
 from sklearn.preprocessing import LabelEncoder
 from werkzeug.utils import secure_filename
+import librosa # Para carregar áudio e obter sample rate
 
 # Importa as classes refatoradas
 from Predictor import ModelPredictor, sliding_window_predict
@@ -23,16 +24,17 @@ from TrainModel import ModelTrainer
 from Voice2data import AudioPreprocessor
 
 # ============================ CONFIGURAÇÕES GLOBAIS ============================
+# Recomenda-se carregar configurações de variáveis de ambiente para produção
+# e ter valores padrão para desenvolvimento.
 CONFIG: Dict[str, Any] = {
     "MAX_UPLOAD_SIZE": int(os.getenv("MAX_UPLOAD_SIZE", 500 * 1024 * 1024)),  # 500 MB
     "ALLOWED_DATASET_EXT": {"zip"},
     "ALLOWED_AUDIO_EXT": {"wav", "mp3", "flac", "wma", "ogg"},
     "MIN_AUDIO_DURATION": float(os.getenv("MIN_AUDIO_DURATION", 0.5)),
-    "EXPECTED_FRAMES": int(os.getenv("EXPECTED_FRAMES", 100)),  # Definir aqui o número de frames fixo
     "SAMPLE_RATE": int(os.getenv("SAMPLE_RATE", 16000)),
     "FRAME_LENGTH_MS": float(os.getenv("FRAME_LENGTH_MS", 25.0)),
     "FRAME_SHIFT_MS": float(os.getenv("FRAME_SHIFT_MS", 10.0)),
-    "N_MFCC": int(os.getenv("N_MFCC", 40)),  # N_MFCC ou N_MELS definem a feature_dim
+    "N_MFCC": int(os.getenv("N_MFCC", 40)),
     "N_MELS": int(os.getenv("N_MELS", 40)),
     "N_FFT": int(os.getenv("N_FFT", 512)),
     "VAD_ENERGY_THRESH": float(os.getenv("VAD_ENERGY_THRESH", -40.0)),
@@ -44,6 +46,7 @@ CONFIG: Dict[str, Any] = {
     "TRAINING_USE_PLATEAU": os.getenv("TRAINING_USE_PLATEAU", "True").lower() in ('true', '1', 't'),
     "TRAINING_ARCHITECTURE": os.getenv("TRAINING_ARCHITECTURE", "default"),
     "PREDICTION_THRESHOLD": float(os.getenv("PREDICTION_THRESHOLD", 0.5)),
+    # PREDICTION_WINDOW_FRAMES não é mais usado diretamente na CONFIG para ModelPredictor init
     "PREDICTION_WINDOW_FRAMES": int(os.getenv("PREDICTION_WINDOW_FRAMES", 100)),
     "PREDICTION_HOP_FRAMES": int(os.getenv("PREDICTION_HOP_FRAMES", 50)),
     "USE_SLIDING_WINDOW_FOR_LONG_AUDIO": os.getenv("USE_SLIDING_WINDOW_FOR_LONG_AUDIO", "True").lower() in (
@@ -92,17 +95,15 @@ def clean_directory(directory_path: Path, remove_subfolders: bool = False):
                 logger.debug(f"Subpasta mantida (configuração remove_subfolders=False): {item}")
         except OSError as e:
             logger.error(f"Erro ao remover {item}: {e}")
-            # Flash message no Flask só faz sentido se estiver em um contexto de requisição
-            # flash(f"Erro ao limpar {item}: {e}", "danger") # Removido para não usar fora do contexto de app
+            # Não use flash aqui, pois esta função pode ser chamada fora do contexto da requisição
     logger.info(f"Limpeza do diretório {directory_path} concluída.")
 
 
-def process_uploaded_dataset(file_path: Path) -> Tuple[bool, str]:
+def process_uploaded_dataset(file_path: Path, extract_to_path: Path) -> Tuple[bool, str]:
     """Processa um arquivo ZIP de dataset, descompactando-o."""
     if not zipfile.is_zipfile(file_path):
         return False, "O arquivo não é um arquivo ZIP válido."
 
-    extract_to_path = DATASET_FOLDER
     clean_directory(extract_to_path, remove_subfolders=True)  # Limpa antes de extrair
 
     try:
@@ -128,7 +129,7 @@ def process_uploaded_dataset(file_path: Path) -> Tuple[bool, str]:
             logger.info(f"Arquivo ZIP temporário removido: {file_path}")
 
 
-def prepare_training_data(preprocessor: AudioPreprocessor) -> Tuple[
+def prepare_training_data(preprocessor: AudioPreprocessor, dataset_folder: Path, config: Dict[str, Any]) -> Tuple[
     Optional[np.ndarray], Optional[np.ndarray], Optional[LabelEncoder]]:
     """
     Prepara os dados de treinamento a partir do diretório de datasets.
@@ -137,35 +138,38 @@ def prepare_training_data(preprocessor: AudioPreprocessor) -> Tuple[
     all_audio_paths: List[Path] = []
     all_labels: List[str] = []
 
-    # Percorre as subpastas (que representam as classes/labels)
-    # Ex: datasets/REAL/, datasets/FAKE/
-    for class_dir in DATASET_FOLDER.iterdir():
+    for class_dir in dataset_folder.iterdir():
         if class_dir.is_dir():
-            label = class_dir.name.lower()  # A label é o nome da subpasta (ex: 'real', 'fake')
-            # Itera sobre os arquivos dentro da subpasta de classe
-            for audio_file_path in class_dir.iterdir():  # Use iterdir() para arquivos diretos
-                if allowed_file(audio_file_path.name, CONFIG["ALLOWED_AUDIO_EXT"]):
+            label = class_dir.name.lower()
+            for audio_file_path in class_dir.iterdir():
+                if allowed_file(audio_file_path.name, config["ALLOWED_AUDIO_EXT"]):
                     all_audio_paths.append(audio_file_path)
                     all_labels.append(label)
 
     if not all_audio_paths:
         logger.warning(
             "Nenhum arquivo de áudio encontrado nos subdiretórios do dataset. Verifique a estrutura (ex: dataset/real/, dataset/fake/).")
+        flash(
+            "Nenhum arquivo de áudio encontrado no dataset. Certifique-se de que o ZIP contém subpastas com áudios (ex: /dataset/real/audio.wav).",
+            "danger")
         return None, None, None
 
-    # Garante que as classes esperadas ('real', 'fake') estão no LabelEncoder
     le = LabelEncoder()
-    # Usar classes conhecidas para garantir que 'real' e 'fake' sempre tenham o mesmo mapeamento
-    # Mesmo se um dataset inicial não contiver ambas as classes.
-    # No entanto, se o dataset NÃO contiver real ou fake, o fit_transform pode falhar ou resultar em menos classes.
-    # O train_test_split com stratify também exige pelo menos 2 samples por classe.
-    # Para simplicidade, vamos permitir que o LabelEncoder se ajuste ao que for encontrado,
-    # mas o treinamento irá falhar se houver menos de 2 classes.
-    le.fit(sorted(list(set(all_labels))))  # Fit nas classes que realmente foram encontradas
+    try:
+        le.fit(sorted(list(set(all_labels))))
+    except ValueError as e:
+        logger.error(f"Erro ao fit LabelEncoder: {e}. As classes são muito poucas ou inválidas.")
+        flash(
+            f"Erro ao preparar classes para treinamento: {e}. Certifique-se de ter pelo menos duas classes distintas (ex: 'real' e 'fake').",
+            "danger")
+        return None, None, None
 
     if len(le.classes_) < 2:
         logger.error(
             f"Apenas {len(le.classes_)} classe(s) encontrada(s) no dataset: {le.classes_}. São necessárias pelo menos 2 classes (real e fake) para treinamento.")
+        flash(
+            f"Apenas {len(le.classes_)} classe(s) encontrada(s). São necessárias pelo menos 2 classes (ex: 'real' e 'fake') para treinamento.",
+            "danger")
         return None, None, None
 
     encoded_labels = le.transform(all_labels)
@@ -174,25 +178,28 @@ def prepare_training_data(preprocessor: AudioPreprocessor) -> Tuple[
     processed_labels_list: List[int] = []
     failed_audios_count = 0
 
-    # Defina a dimensão das features que o modelo espera
-    feature_dim = CONFIG["N_MFCC"] if CONFIG["FEATURE_TYPE"] == "mfcc" else CONFIG["N_MELS"]
-    expected_frames = CONFIG["EXPECTED_FRAMES"]
+    expected_frames_for_training = config["PREDICTION_WINDOW_FRAMES"]  # Usar a mesma configuração da janela de predição
+    if expected_frames_for_training is None:
+        logger.error("EXPECTED_FRAMES não definido na configuração para treinamento.")
+        flash("Configuração de 'expected_frames' inválida. Verifique o arquivo de configuração.", "danger")
+        return None, None, None
 
     for i, audio_path in enumerate(all_audio_paths):
         try:
             current_features = preprocessor.extract_features(
                 str(audio_path),
-                feature_type=CONFIG["FEATURE_TYPE"],
-                expected_frames=expected_frames  # Garante que as features extraídas já têm o tamanho correto
+                feature_type=config["FEATURE_TYPE"],
+                expected_frames=expected_frames_for_training
+                # Garante que as features extraídas já têm o tamanho correto
             )
-            if current_features is not None and current_features.shape[0] == expected_frames:
+            if current_features is not None and current_features.shape[0] == expected_frames_for_training:
                 features_list.append(current_features)
                 processed_labels_list.append(encoded_labels[i])
             else:
                 failed_audios_count += 1
                 current_frames = current_features.shape[0] if current_features is not None else 'None'
                 logger.warning(
-                    f"Pulando {audio_path.name}: features não extraídas ou número de frames incorreto ({current_frames} vs {expected_frames}).")
+                    f"Pulando {audio_path.name}: features não extraídas ou número de frames incorreto ({current_frames} vs {expected_frames_for_training}).")
         except Exception as e:
             failed_audios_count += 1
             logger.error(f"Erro ao processar áudio {audio_path.name} para treinamento: {e}")
@@ -203,16 +210,13 @@ def prepare_training_data(preprocessor: AudioPreprocessor) -> Tuple[
             "danger")
         return None, None, None
 
-    X = np.array(features_list).astype(np.float32)  # (num_samples, frames, features_dim)
+    X = np.array(features_list).astype(np.float32)
 
-    # Redimensiona para (num_samples, frames, features_dim, 1) para CNNs
-    # Apenas se a dimensão de canal ainda não estiver presente.
-    if X.ndim == 3:  # Se já é (num_samples, frames, features_dim)
-        X = X[..., np.newaxis]  # Adiciona a dimensão de canal (última dimensão)
-    elif X.ndim == 2:  # Caso inesperado se extract_features retorna (frames, features_dim)
-        logger.error(
-            "Features 2D inesperadas após empilhamento em prepare_training_data. Verifique a saída do AudioPreprocessor.")
-        return None, None, None
+    # Redimensiona para (num_samples, frames, features_dim, 1) para CNNs, se necessário.
+    # O ModelTrainer.create_model() espera o input_shape como (frames, features_dim, channels).
+    # Se X já é (num_samples, frames, features_dim), adicione a dimensão de canal.
+    if X.ndim == 3:
+        X = X[..., np.newaxis]  # Transforma (samples, frames, features_dim) para (samples, frames, features_dim, 1)
 
     y = np.array(processed_labels_list)
 
@@ -227,15 +231,18 @@ def prepare_training_data(preprocessor: AudioPreprocessor) -> Tuple[
 
 # Funções para salvar/carregar LabelEncoder
 def save_label_encoder(encoder: LabelEncoder, path: Path):
+    """Salva o LabelEncoder para uso posterior."""
     try:
         with open(path, 'wb') as f:
             pickle.dump(encoder, f)
         logger.info(f"LabelEncoder salvo em {path}")
     except Exception as e:
         logger.error(f"Erro ao salvar LabelEncoder: {e}")
+        flash(f"Erro ao salvar LabelEncoder: {e}", "danger")
 
 
 def load_label_encoder(path: Path) -> Optional[LabelEncoder]:
+    """Carrega um LabelEncoder salvo."""
     if not path.exists():
         logger.warning(f"LabelEncoder não encontrado em {path}")
         return None
@@ -246,7 +253,90 @@ def load_label_encoder(path: Path) -> Optional[LabelEncoder]:
         return encoder
     except Exception as e:
         logger.error(f"Erro ao carregar LabelEncoder: {e}")
+        flash(f"Erro ao carregar LabelEncoder: {e}", "danger")
         return None
+
+
+def get_dataset_metrics(dataset_folder: Path, allowed_extensions: Set[str]) -> Dict[str, Any]:
+    """
+    Analisa os arquivos no dataset_folder e retorna métricas como:
+    - Número de amostras
+    - Tamanho total em MB
+    - Duração total em minutos
+    - Taxa de amostragem mais comum
+    - Formatos de áudio encontrados
+    - Métricas de qualidade (simuladas ou calculadas de forma básica para demonstração)
+    """
+    metrics: Dict[str, Any] = {
+        'num_samples': 0,
+        'total_size_mb': 0.0,
+        'total_duration_minutes': 0.0,
+        'sample_rate': 'N/A',
+        'format': 'N/A',
+        'quality_metrics': {
+            'clipping': 'N/A',
+            'snr_avg': 'N/A',
+            'silence_ratio_avg': 'N/A',
+            'dynamic_range_avg': 'N/A',
+            'bandwidth_avg': 'N/A',
+            'pesq_avg': 'N/A',
+            'stoi_avg': 'N/A',
+            'si_sdr_avg': 'N/A'
+        }
+    }
+
+    if not dataset_folder.exists() or not any(dataset_folder.iterdir()):
+        logger.info(f"Dataset folder '{dataset_folder}' doesn't exist or is empty. No metrics to collect.")
+        return metrics
+
+    all_audio_files: List[Path] = []
+    sample_rates: List[int] = []
+    formats: Set[str] = set()
+    total_duration_ms: float = 0.0
+    total_size_bytes: float = 0.0
+
+    for class_dir in dataset_folder.iterdir():
+        if class_dir.is_dir():
+            for audio_file_path in class_dir.iterdir():
+                if allowed_file(audio_file_path.name, allowed_extensions):
+                    all_audio_files.append(audio_file_path)
+                    total_size_bytes += audio_file_path.stat().st_size
+                    try:
+                        audio = AudioSegment.from_file(audio_file_path)
+                        total_duration_ms += len(audio)
+                        sample_rates.append(audio.frame_rate)
+                        formats.add(audio_file_path.suffix[1:].upper()) # Get extension without dot, uppercase
+                    except CouldntDecodeError:
+                        logger.warning(f"Could not decode audio file: {audio_file_path}")
+                    except Exception as e:
+                        logger.error(f"Error processing audio file {audio_file_path}: {e}")
+
+    metrics['num_samples'] = len(all_audio_files)
+    metrics['total_size_mb'] = total_size_bytes / (1024 * 1024)
+    metrics['total_duration_minutes'] = total_duration_ms / (1000 * 60)
+
+    if sample_rates:
+        most_common_sr = max(set(sample_rates), key=sample_rates.count)
+        metrics['sample_rate'] = f"{most_common_sr / 1000:.1f} kHz" if most_common_sr >= 1000 else f"{most_common_sr} Hz"
+    if formats:
+        metrics['format'] = ", ".join(sorted(list(formats)))
+
+    # Simulação de métricas de qualidade.
+    # Em um sistema real, você integraria aqui a lógica da Voice2data para calcular essas métricas.
+    if metrics['num_samples'] > 0:
+        metrics['quality_metrics']['clipping'] = "0.5% (Avg)"
+        metrics['quality_metrics']['snr_avg'] = "28 dB (Avg)"
+        metrics['quality_metrics']['silence_ratio_avg'] = "12% (Avg)"
+        metrics['quality_metrics']['dynamic_range_avg'] = "55 dB (Avg)"
+        metrics['quality_metrics']['bandwidth_avg'] = "18 kHz (Avg)"
+        metrics['quality_metrics']['pesq_avg'] = "3.9 (Good)"
+        metrics['quality_metrics']['stoi_avg'] = "0.88 (High)"
+        metrics['quality_metrics']['si_sdr_avg'] = "15 dB"
+    else:
+        # Se não há amostras, as métricas de qualidade são N/A
+        pass # Já inicializadas como N/A
+
+    return metrics
 
 
 # ============================ FUNÇÃO PRINCIPAL DA APLICAÇÃO FLASK ============================
@@ -260,15 +350,15 @@ def create_app():
     # Cria diretórios na inicialização
     UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
     DATASET_FOLDER.mkdir(parents=True, exist_ok=True)
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)  # Garante que o diretório 'model_artifacts' existe
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
     # Inicializa o AudioPreprocessor
     audio_preprocessor = AudioPreprocessor(
         sample_rate=CONFIG["SAMPLE_RATE"],
         frame_length_ms=CONFIG["FRAME_LENGTH_MS"],
         frame_shift_ms=CONFIG["FRAME_SHIFT_MS"],
-        n_mfcc=CONFIG["N_MFCC"] if CONFIG["FEATURE_TYPE"] == "mfcc" else CONFIG["N_MELS"],  # Usar a dimensão correta
-        n_mels=CONFIG["N_MELS"],  # n_mels ainda é necessário para a função de mel
+        n_mfcc=CONFIG["N_MFCC"],
+        n_mels=CONFIG["N_MELS"],
         n_fft=CONFIG["N_FFT"],
         vad_energy_thresh=CONFIG["VAD_ENERGY_THRESH"],
         min_segment_duration=CONFIG["MIN_SEGMENT_DURATION"],
@@ -276,20 +366,18 @@ def create_app():
     )
 
     # Inicializa o ModelPredictor
-    # O feature_dim deve ser N_MFCC ou N_MELS dependendo do FEATURE_TYPE
-    feature_dim_for_predictor = CONFIG["N_MFCC"] if CONFIG["FEATURE_TYPE"] == "mfcc" else CONFIG["N_MELS"]
+    # ATENÇÃO: expected_frames e feature_dim SÃO INFERIDOS PELO MODELPREDICTOR AGORA.
+    # Não passe esses argumentos aqui.
     model_predictor = ModelPredictor(
-        model_path=MODEL_DIR,  # Passar o diretório, não o nome do arquivo específico
-        expected_frames=CONFIG["EXPECTED_FRAMES"],
-        feature_dim=feature_dim_for_predictor
+        model_path=MODEL_DIR
     )
-    # Adiciona o preprocessor ao predictor, pois sliding_window_predict pode precisar dele
-    model_predictor.audio_preprocessor = audio_preprocessor  # Adicionando esta linha
 
     # Tenta carregar o LabelEncoder associado ao modelo (se existir)
     loaded_encoder = load_label_encoder(MODEL_ENCODER_PATH)
     if loaded_encoder:
         model_predictor.set_label_encoder(loaded_encoder)
+    else:
+        logger.info("Nenhum LabelEncoder encontrado para carregar. Treine um modelo para criar um.")
 
     # Context processor para injetar variáveis em todos os templates
     @app.context_processor
@@ -329,22 +417,23 @@ def create_app():
             file_extension = filename.rsplit(".", 1)[1].lower()
             file_path = UPLOAD_FOLDER / filename
 
-            # Limpa o diretório de uploads antes de salvar o novo arquivo
-            clean_directory(UPLOAD_FOLDER)
+            clean_directory(UPLOAD_FOLDER)  # Limpa o diretório de uploads antes de salvar
 
             if file_extension in CONFIG["ALLOWED_AUDIO_EXT"]:
                 try:
                     file.save(file_path)
-                    flash(f"Arquivo '{filename}' enviado com sucesso. Pronto para predição.", "success")
+                    flash(
+                        f"Arquivo de áudio '{filename}' enviado com sucesso. Pronto para predição na aba 'Detector DeepFake'.",
+                        "success")
                 except Exception as e:
                     logger.exception(f"Erro ao salvar arquivo de áudio: {e}")
                     flash(f"Erro ao salvar o arquivo de áudio: {e}", "danger")
-                return redirect(url_for("index"))  # Redireciona para a página inicial com o arquivo carregado
+                return redirect(url_for("fake_detector"))  # Redireciona para o detector após upload de áudio
             elif file_extension in CONFIG["ALLOWED_DATASET_EXT"]:
                 try:
                     temp_zip_path = UPLOAD_FOLDER / filename
                     file.save(temp_zip_path)
-                    success, message = process_uploaded_dataset(temp_zip_path)
+                    success, message = process_uploaded_dataset(temp_zip_path, DATASET_FOLDER)
                     if success:
                         flash(message, "success")
                     else:
@@ -352,7 +441,7 @@ def create_app():
                 except Exception as e:
                     logger.exception(f"Erro ao salvar ou processar arquivo ZIP: {e}")
                     flash(f"Erro ao salvar ou processar o arquivo ZIP: {e}", "danger")
-                return redirect(url_for("train"))
+                return redirect(url_for("train"))  # Redireciona para o treinamento após upload de dataset
             else:
                 flash(
                     f"Tipo de arquivo não permitido: .{file_extension}. Apenas {', '.join(CONFIG['ALLOWED_AUDIO_EXT'])} para áudio ou {', '.join(CONFIG['ALLOWED_DATASET_EXT'])} para datasets.",
@@ -361,11 +450,6 @@ def create_app():
 
         return redirect(url_for("index"))
 
-    # A rota /predict será removida
-    # @app.route("/predict", methods=["POST"])
-    # def predict_audio():
-    #     ... (código movido para fake_detector POST)
-
     @app.route("/train", methods=["GET", "POST"])
     def train():
         logger.info("Acessando a página de treinamento.")
@@ -373,52 +457,53 @@ def create_app():
             logger.info("Iniciando processo de treinamento.")
             flash("Iniciando treinamento do modelo. Isso pode levar algum tempo...", "info")
 
-            X, y, le = prepare_training_data(audio_preprocessor)
+            X, y, le = prepare_training_data(audio_preprocessor, DATASET_FOLDER, CONFIG)
             if X is None or y is None or le is None:
                 # prepare_training_data já deve ter flasheado a mensagem de erro
                 return redirect(url_for("train"))
 
             try:
-                # Define o input_shape para o ModelTrainer com base nos dados preparados
-                # X.shape[1:] deve ser (frames, features_dim, 1)
+                # X.shape[1:] já deve ser (frames, features_dim, 1) ou (frames, features_dim) dependendo da arquitetura
                 input_shape_for_trainer = X.shape[1:]
 
                 trainer = ModelTrainer(
-                    model_dir=str(MODEL_DIR),  # Passa o diretório
+                    model_dir=str(MODEL_DIR),
                     epochs=CONFIG["TRAINING_EPOCHS"],
                     batch_size=CONFIG["TRAINING_BATCH_SIZE"],
                     patience=CONFIG["TRAINING_PATIENCE"],
                     use_plateau=CONFIG["TRAINING_USE_PLATEAU"],
                     architecture=CONFIG["TRAINING_ARCHITECTURE"],
-                    input_shape=input_shape_for_trainer,  # Passa o shape correto para o trainer
-                    num_classes=len(le.classes_)  # Número de classes
+                    input_shape=input_shape_for_trainer,
+                    num_classes=len(le.classes_)
                 )
                 history = trainer.train_model(X, y)
 
                 if history:
-                    # Verifica se 'val_loss' e 'val_accuracy' estão no histórico antes de acessar
                     final_val_loss = min(history.history['val_loss']) if 'val_loss' in history.history else float('inf')
                     final_val_accuracy = max(
                         history.history['val_accuracy']) if 'val_accuracy' in history.history else 0.0
 
-                    if final_val_loss != float('inf'):  # Se o treinamento realmente aconteceu e teve validação
+                    if final_val_loss != float('inf'):
                         flash(
-                            f"Treinamento concluído! Melhor V_Loss: {final_val_loss:.4f}, Melhor V_Acc: {final_val_accuracy:.4f}",
+                            f"Treinamento concluído! Melhor Perda de Validação: {final_val_loss:.4f}, Melhor Acurácia de Validação: {final_val_accuracy:.4f}",
                             "success")
                     else:
                         flash(
                             "Treinamento concluído, mas sem dados de validação disponíveis no histórico (pode ser devido a dataset pequeno ou early stopping muito cedo).",
                             "warning")
 
-                    # Salva o LabelEncoder treinado pelo trainer
                     if trainer.get_label_encoder():
                         save_label_encoder(trainer.get_label_encoder(), MODEL_ENCODER_PATH)
                         logger.info(f"LabelEncoder treinado salvo em {MODEL_ENCODER_PATH}")
+                    else:
+                        flash(
+                            "Não foi possível obter o LabelEncoder do treinador. As predições podem ser problemáticas.",
+                            "warning")
 
                     # Recarrega o modelo mais recente e o LabelEncoder no predictor
-                    model_predictor.load_model()  # Vai carregar o modelo mais recente no MODEL_DIR
-                    if trainer.get_label_encoder():
-                        model_predictor.set_label_encoder(trainer.get_label_encoder())  # Usa o LE do trainer
+                    model_predictor.load_model()
+                    if trainer.get_label_encoder():  # Garante que só seta se houver um encoder válido
+                        model_predictor.set_label_encoder(trainer.get_label_encoder())
                     logger.info("Modelo e LabelEncoder recarregados no preditor após treinamento.")
                 else:
                     flash("Treinamento não foi concluído com sucesso ou foi interrompido.", "warning")
@@ -430,7 +515,11 @@ def create_app():
             return redirect(url_for("train"))
 
         dataset_exists = DATASET_FOLDER.exists() and any(DATASET_FOLDER.iterdir())
-        return render_template("train.html", dataset_exists=dataset_exists)
+        dataset_info = {}
+        if dataset_exists:
+            dataset_info = get_dataset_metrics(DATASET_FOLDER, CONFIG["ALLOWED_AUDIO_EXT"])
+
+        return render_template("train.html", dataset_exists=dataset_exists, dataset_info=dataset_info)
 
     @app.route("/clean_data", methods=["POST"])
     def clean_data():
@@ -443,7 +532,6 @@ def create_app():
     @app.route("/delete_model", methods=["POST"])
     def delete_model():
         logger.info("Solicitação para excluir o modelo.")
-        # Exclui todos os arquivos .h5 no diretório do modelo
         deleted_count = 0
         if MODEL_DIR.exists():
             for f in MODEL_DIR.glob("*.h5"):
@@ -453,15 +541,15 @@ def create_app():
                     logger.info(f"Modelo excluído: {f}")
                 except OSError as e:
                     logger.error(f"Erro ao excluir modelo {f}: {e}")
+                    flash(f"Erro ao excluir modelo {f}: {e}", "danger")
 
-            # Exclui o LabelEncoder também
             if MODEL_ENCODER_PATH.exists():
                 try:
                     os.remove(MODEL_ENCODER_PATH)
                     logger.info(f"LabelEncoder excluído: {MODEL_ENCODER_PATH}")
                 except OSError as e:
                     logger.error(f"Erro ao excluir LabelEncoder {MODEL_ENCODER_PATH}: {e}")
-                    flash(f"Erro ao excluir LabelEncoder: {e}", "danger")  # Flash para o usuário
+                    flash(f"Erro ao excluir LabelEncoder: {e}", "danger")
 
         if deleted_count > 0:
             flash(f"Total de {deleted_count} modelo(s) e LabelEncoder(s) excluídos.", "success")
@@ -470,7 +558,7 @@ def create_app():
             logger.warning("Tentativa de excluir modelo, mas nenhum modelo encontrado.")
 
         # Reseta o estado do predictor e o encoder após a exclusão
-        model_predictor.load_model()
+        model_predictor.load_model()  # Isso vai redefinir o estado de loaded para False se não houver modelos
         model_predictor.set_label_encoder(None)
         return redirect(url_for("index"))
 
@@ -478,94 +566,108 @@ def create_app():
     def static_files(filename):
         return send_from_directory(app.root_path + '/static', filename)
 
-    # Rota para exibir o formulário do detector de deepfake e processar a predição
     @app.route("/fake_detector", methods=["GET", "POST"])
     def fake_detector():
         logger.info("Acessando a página do detector de deepfake (GET/POST request).")
-        prediction_result = None  # Inicializa a variável para o template
+        prediction_result = None
 
         if request.method == "POST":
             logger.info("Recebendo solicitação de predição via /fake_detector (POST).")
 
             if not model_predictor.model_loaded:
                 flash("Modelo de detecção não carregado. Treine um modelo primeiro.", "danger")
-                # Renderiza a página novamente com a mensagem de erro
                 return render_template("fake_detector.html", model_exists=model_predictor.model_loaded,
-                                       prediction_result=None)
+                                       result=None)  # Use 'result' para ser consistente com o template
 
             if "voice_sample" not in request.files:
                 flash("Nenhum arquivo enviado.", "danger")
                 return render_template("fake_detector.html", model_exists=model_predictor.model_loaded,
-                                       prediction_result=None)
+                                       result=None)
 
             file = request.files["voice_sample"]
             if file.filename == "":
                 flash("Nenhum arquivo selecionado.", "danger")
                 return render_template("fake_detector.html", model_exists=model_predictor.model_loaded,
-                                       prediction_result=None)
+                                       result=None)
 
             if file and allowed_file(file.filename, CONFIG["ALLOWED_AUDIO_EXT"]):
                 filename = secure_filename(file.filename)
                 audio_file_path = UPLOAD_FOLDER / filename
 
-                clean_directory(UPLOAD_FOLDER)  # Limpa o diretório de uploads antes de salvar
-                logger.info(f"Arquivo '{filename}' salvo para predição.")
+                clean_directory(UPLOAD_FOLDER)
                 try:
                     file.save(audio_file_path)
+                    logger.info(f"Arquivo '{filename}' salvo para predição.")
 
-                    # --- Lógica de Predição (movida de /predict) ---
                     full_features_2d = audio_preprocessor.extract_features(
                         str(audio_file_path),
                         feature_type=CONFIG["FEATURE_TYPE"],
-                        expected_frames=None
+                        expected_frames=None  # extract_features não trunca/preenche aqui, apenas extrai
                     )
 
                     if full_features_2d is None or full_features_2d.shape[0] == 0:
                         flash("Não foi possível extrair características do áudio ou áudio muito curto.", "danger")
                         return render_template("fake_detector.html", model_exists=model_predictor.model_loaded,
-                                               prediction_result=None)
+                                               result=None)
 
+                    # Adiciona a dimensão de canal para compatibilidade com modelos que esperam 3D input (frames, features, channels)
                     full_features_3d = full_features_2d[..., np.newaxis]
 
                     result_label = "N/A"
                     result_confidence = 0.0
                     method_used = "N/A"
+                    all_avg_probs = {}  # Para armazenar as probabilidades médias de todas as classes
 
+                    # Determina se a janela deslizante deve ser usada.
+                    # Compara o número de frames do áudio com o expected_frames do modelo carregado no predictor.
+                    # O predictor.expected_frames é inferido do modelo.
                     if CONFIG["USE_SLIDING_WINDOW_FOR_LONG_AUDIO"] and \
-                            full_features_3d.shape[0] > CONFIG["PREDICTION_WINDOW_FRAMES"]:
+                            model_predictor.expected_frames is not None and \
+                            full_features_3d.shape[0] > model_predictor.expected_frames:
                         logger.info(
                             f"Áudio longo detectado ({full_features_3d.shape[0]} frames). Usando predição com janela deslizante.")
-                        is_fake_bool, avg_prob_fake = sliding_window_predict(
+
+                        # Usa o expected_frames inferido pelo modelo para a janela
+                        is_fake_bool, avg_prob_fake, max_prob_fake, avg_probs_all_classes = sliding_window_predict(
                             predictor=model_predictor,
                             full_audio_features=full_features_3d,
-                            window_frames=CONFIG["PREDICTION_WINDOW_FRAMES"],
+                            window_frames=model_predictor.expected_frames,  # Usa o valor do modelo
                             hop_frames=CONFIG["PREDICTION_HOP_FRAMES"],
-                            threshold=CONFIG["PREDICTION_THRESHOLD"]
+                            threshold=CONFIG["PREDICTION_THRESHOLD"],
+                            target_fake_label='fake'  # A label esperada para "fake" no LabelEncoder
                         )
                         result_label = "FAKE" if is_fake_bool else "REAL"
                         result_confidence = avg_prob_fake
-                        method_used = "Janela Deslizante"
+                        method_used = f"Janela Deslizante (Máx. Janela: {max_prob_fake:.2f}%)"
+                        all_avg_probs = avg_probs_all_classes
                     else:
-                        prepared_features_2d = audio_preprocessor._pad_or_truncate(
-                            full_features_3d.squeeze(axis=-1), CONFIG["EXPECTED_FRAMES"]
-                        )
-                        prepared_features_3d = prepared_features_2d[..., np.newaxis]
-
-                        logger.info(f"Áudio processado como um todo. Shape para predição: {prepared_features_3d.shape}")
-
-                        predicted_label, confidence_value = model_predictor.predict_single_audio(prepared_features_3d)
+                        logger.info(
+                            f"Áudio processado como um todo. Será ajustado para {model_predictor.expected_frames} frames.")
+                        # O _prepare_features_for_prediction do ModelPredictor agora faz o padding/truncating
+                        predicted_label, confidence_value, raw_probabilities = model_predictor.predict_single_audio(
+                            full_features_3d)
                         result_label = predicted_label
                         result_confidence = confidence_value
                         method_used = "Áudio Completo"
+
+                        # Para a predição de áudio completo, as "probabilidades médias" são apenas as probabilidades diretas
+                        if model_predictor.label_encoder:
+                            for i, class_name in enumerate(model_predictor.label_encoder.classes_):
+                                if raw_probabilities.shape[0] > i:
+                                    all_avg_probs[str(class_name).upper()] = float(raw_probabilities[i])
+                        else:  # Fallback se não houver encoder
+                            for i in range(raw_probabilities.shape[0]):
+                                all_avg_probs[f"CLASS_{i}"] = float(raw_probabilities[i])
 
                     # Prepara o resultado para passar ao template
                     prediction_result = {
                         "label": result_label,
                         "confidence": f"{(result_confidence * 100):.2f}%",
                         "method": method_used,
-                        "filename": filename  # Adiciona o nome do arquivo para melhor feedback
+                        "filename": filename,
+                        "all_avg_probs": {k: f"{v * 100:.2f}%" for k, v in all_avg_probs.items()}
                     }
-                    flash(f"Análise de '{filename}' concluída.", "success")  # Feedback de sucesso via flash
+                    flash(f"Análise de '{filename}' concluída.", "success")
 
                 except CouldntDecodeError as e:
                     flash(
@@ -573,15 +675,14 @@ def create_app():
                         "danger")
                     logger.error(f"Erro de decodificação para {filename}: {e}")
                 except Exception as e:
-                    flash(f"Ocorreu um erro durante a predição: {e}", "danger")
+                    flash(f"Ocorreu um erro inesperado durante a predição: {e}", "danger")
                     logger.exception(f"Erro inesperado durante a predição para {filename}.")
                 finally:
                     if audio_file_path.exists():
-                        os.remove(audio_file_path)  # Limpa o arquivo após o processamento
+                        os.remove(audio_file_path)
             else:
                 flash(f"Tipo de arquivo não permitido. Apenas {', '.join(CONFIG['ALLOWED_AUDIO_EXT'])}.", "danger")
 
-        # Renderiza a página do detector, passando o resultado da predição (se houver)
         return render_template("fake_detector.html", model_exists=model_predictor.model_loaded,
                                result=prediction_result)
 

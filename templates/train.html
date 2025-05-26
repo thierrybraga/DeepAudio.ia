@@ -2,57 +2,368 @@
 
 {% block title %}Treinamento do Modelo - DeepAudio{% endblock %}
 
+{% block head %}
+  {{ super() }}
+  <meta name="description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status, as métricas e a qualidade do seu dataset carregado, e inicie o treinamento com um clique.">
+  <meta name="keywords" content="treinamento IA, modelo de áudio, deepfake, detecção de áudio, machine learning, dataset, DeepAudio, qualidade de áudio, amostras de áudio, tempo de áudio, taxa de amostragem">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Treinamento do Modelo - DeepAudio">
+  <meta property="og:description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status, as métricas e a qualidade do seu dataset.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Treinamento do Modelo - DeepAudio">
+  <meta name="twitter:description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status, as métricas e a qualidade do seu dataset.">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white text-center">
-                    <h2 class="mb-0"><i class="bi bi-robot me-2"></i>Treinamento do Modelo</h2>
-                </div>
-                <div class="card-body">
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
-
-                    <p class="lead text-center">Aqui você pode iniciar o processo de treinamento do seu modelo de detecção de deepfake. Certifique-se de que um dataset tenha sido carregado e esteja pronto para o treinamento.</p>
-
-                    <hr>
-
-                    {% if dataset_exists %}
-                        <div class="alert alert-success text-center" role="alert">
-                            <i class="bi bi-check-circle me-2"></i>Dataset pronto para treinamento!
-                        </div>
-                        <p class="text-center">Clique no botão abaixo para iniciar o treinamento do modelo. Isso pode levar alguns minutos, dependendo do tamanho do seu dataset e da capacidade do seu sistema.</p>
-                        <div class="d-grid gap-2">
-                            <form action="{{ url_for('train') }}" method="post">
-                                <button type="submit" class="btn btn-success btn-lg w-100">
-                                    <i class="bi bi-play-circle me-2"></i>Iniciar Treinamento
-                                </button>
-                            </form>
-                        </div>
-                    {% else %}
-                        <div class="alert alert-warning text-center" role="alert">
-                            <i class="bi bi-exclamation-triangle me-2"></i>Nenhum dataset encontrado.
-                        </div>
-                        <p class="text-center">Por favor, retorne à <a href="{{ url_for('index') }}">página inicial</a> para fazer o upload de um dataset ZIP antes de tentar treinar o modelo.</p>
-                    {% endif %}
-
-                    <div class="mt-4 text-center">
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left-circle me-2"></i>Voltar para a Página Inicial
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="hero-section hero-small">
+  <div class="hero-background"></div>
+  <div class="hero-content">
+    <header class="text-center py-4 animate__animated animate__fadeInDown">
+      <div class="hero-badge mb-3">
+        <i class="bi bi-robot me-2"></i>
+        Treinamento IA
+      </div>
+      <h1 class="hero-title mb-3">
+        Treinar <span class="brand-gradient">Novo Modelo</span>
+      </h1>
+      <p class="hero-subtitle mb-4">
+        O cérebro por trás da detecção de deepfakes.
+      </p>
+    </header>
+  </div>
 </div>
+
+<div class="container-fluid px-4 py-5">
+  <div class="row g-4 justify-content-center max-width-container mx-auto">
+
+    {# Seção 1: Status, Métricas e Qualidade do Dataset (UNIFICADO E DETALHADO) #}
+    <div class="col-12 col-lg-9">
+      <div class="feature-card card-primary animate__animated animate__fadeInUp mb-4">
+        <div class="card-glow card-glow-primary"></div>
+        <div class="card-content">
+          <div class="feature-icon icon-primary">
+            <i class="bi bi-folder-check"></i>
+            <div class="icon-pulse"></div>
+          </div>
+          <h3 class="feature-title">Status e Detalhes do Dataset</h3>
+          <p class="feature-description mb-4">
+            Verifique abaixo o estado do seu dataset, métricas gerais e informações sobre a qualidade do áudio, fundamentais para um treinamento eficaz.
+          </p>
+
+          {# Mensagens Flashed #}
+          {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                  <div class="mb-4">
+                      {% for category, message in messages %}
+                          <div class="alert alert-{{ category }} alert-dismissible fade show animate__animated animate__fadeIn" role="alert">
+                              {{ message }}
+                              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                          </div>
+                      {% endfor %}
+                  </div>
+              {% endif %}
+          {% endwith %}
+
+          <hr class="my-5 border-3">
+
+          {# Informações sobre o status do dataset #}
+          {% if dataset_exists and dataset_info %}
+              <div class="alert-custom alert-success animate__animated animate__fadeInUp mb-4">
+                  <div class="toast-content">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <div>
+                      <h4 class="alert-heading fw-bold mb-1">Dataset Carregado e Pronto!</h4>
+                      <p class="mb-0">Seu dataset foi carregado e verificado com sucesso. Detalhes:</p>
+                    </div>
+                  </div>
+              </div>
+
+              {# Visão Geral do Dataset #}
+              <div class="mt-4 mb-5 pt-3 border-top border-2 border-light">
+                  <h4 class="feature-title text-center mb-4"><i class="bi bi-bar-chart-fill me-2 text-info"></i>Visão Geral do Dataset</h4>
+                  <div class="row text-center gy-4">
+                      <div class="col-md-4">
+                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
+                              <i class="bi bi-file-earmark-music-fill text-primary display-5 mb-2"></i>
+                              <h5 class="fw-bold mb-1">Amostras</h5>
+                              <p class="mb-0 text-muted">{{ dataset_info.num_samples | default('N/A') }}</p>
+                          </div>
+                      </div>
+                      <div class="col-md-4">
+                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
+                              <i class="bi bi-hdd-fill text-success display-5 mb-2"></i>
+                              <h5 class="fw-bold mb-1">Tamanho Total</h5>
+                              <p class="mb-0 text-muted">{{ "%.2f" | format(dataset_info.total_size_mb) | default('N/A') }} MB</p>
+                          </div>
+                      </div>
+                      <div class="col-md-4">
+                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
+                              <i class="bi bi-clock-fill text-warning display-5 mb-2"></i>
+                              <h5 class="fw-bold mb-1">Duração Total</h5>
+                              <p class="mb-0 text-muted">{{ "%.1f" | format(dataset_info.total_duration_minutes) | default('N/A') }} min</p>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="row text-center mt-4">
+                      <div class="col-md-6">
+                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
+                              <i class="bi bi-soundwave text-danger display-5 mb-2"></i>
+                              <h5 class="fw-bold mb-1">Taxa de Amostragem</h5>
+                              <p class="mb-0 text-muted">{{ dataset_info.sample_rate | default('N/A') }}</p>
+                          </div>
+                      </div>
+                      <div class="col-md-6">
+                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
+                              <i class="bi bi-file-earmark-music-fill text-info display-5 mb-2"></i>
+                              <h5 class="fw-bold mb-1">Formatos Comuns</h5>
+                              <p class="mb-0 text-muted">{{ dataset_info.format | default('N/A') }}</p>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+
+              {# Subseção de Parâmetros de Qualidade do Áudio Detalhados #}
+              <div class="mt-5 pt-4 border-top border-3 border-secondary">
+                  <div class="feature-icon icon-tertiary mx-auto mb-4">
+                      <i class="bi bi-bar-chart-line-fill"></i>
+                  </div>
+                  <h4 class="feature-title text-center mb-4">Análise de Qualidade do Áudio</h4>
+                  <p class="feature-description mb-4 text-center">
+                      A performance do seu modelo é diretamente influenciada pela qualidade do áudio no dataset. Nossas métricas detalhadas são:
+                  </p>
+
+                  <div class="audio-quality-pipeline">
+                      <ul class="list-group list-group-flush">
+                          <li class="list-group-item">
+                              <h5 class="fw-bold mb-1"><i class="bi bi-gear-fill me-2 text-info"></i>Pré-processamento Essencial</h5>
+                              <ul class="list-unstyled mb-0 ms-3">
+                                  <li><i class="bi bi-check-circle-fill me-2 text-success"></i>Leitura e Normalização de Áudio</li>
+                                  <li><i class="bi bi-check-circle-fill me-2 text-success"></i>Validação de Sample Rate e Canais</li>
+                              </ul>
+                          </li>
+                          <li class="list-group-item">
+                              <h5 class="fw-bold mb-1"><i class="bi bi-waveform me-2 text-warning"></i>Métricas Técnicas</h5>
+                              <ul class="list-unstyled mb-0 ms-3">
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Clipping (distorção): <span class="fw-bold">{{ dataset_info.quality_metrics.clipping | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>SNR (Signal-to-Noise Ratio): <span class="fw-bold">{{ dataset_info.quality_metrics.snr_avg | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Silence Ratio (proporção de silêncio): <span class="fw-bold">{{ dataset_info.quality_metrics.silence_ratio_avg | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Dynamic Range (faixa dinâmica): <span class="fw-bold">{{ dataset_info.quality_metrics.dynamic_range_avg | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Bandwidth (Faixa de frequências): <span class="fw-bold">{{ dataset_info.quality_metrics.bandwidth_avg | default('N/A') }}</span></li>
+                              </ul>
+                          </li>
+                          <li class="list-group-item">
+                              <h5 class="fw-bold mb-1"><i class="bi bi-ear-fill me-2 text-danger"></i>Métricas Perceptuais <small class="text-muted">(Qualidade Humana)</small></h5>
+                              <ul class="list-unstyled mb-0 ms-3">
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>PESQ (Perceptual Evaluation of Speech Quality): <span class="fw-bold">{{ dataset_info.quality_metrics.pesq_avg | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>STOI (Short-Time Objective Intelligibility): <span class="fw-bold">{{ dataset_info.quality_metrics.stoi_avg | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>SI-SDR (Scale-Invariant Signal-to-Distortion Ratio): <span class="fw-bold">{{ dataset_info.quality_metrics.si_sdr_avg | default('N/A') }}</span></li>
+                              </ul>
+                          </li>
+                          <li class="list-group-item">
+                              <h5 class="fw-bold mb-1"><i class="bi bi-file-earmark-text-fill me-2 text-secondary"></i>Relatórios Detalhados</h5>
+                              <ul class="list-unstyled mb-0 ms-3">
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Disponível em JSON, PDF ou via API Response</li>
+                              </ul>
+                          </li>
+                      </ul>
+                  </div>
+                  <p class="feature-description mt-4 mb-0 text-muted text-center">
+                      <small>Datasets com áudios de alta qualidade geralmente resultam em modelos mais precisos e robustos. Invista na qualidade do seu material!</small>
+                  </p>
+              </div>
+          {% else %}
+              <div class="alert-custom alert-warning animate__animated animate__fadeInDown mb-4">
+                  <div class="toast-content">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div>
+                      <h4 class="alert-heading fw-bold mb-1">Nenhum Dataset Encontrado!</h4>
+                      <p class="mb-0">Para treinar o modelo, um dataset é fundamental.</p>
+                      <p class="mb-0 mt-2">Por favor, retorne à <a href="{{ url_for('index') }}" class="alert-link fw-bold">página inicial</a> para fazer o upload de um dataset ZIP antes de tentar treinar o modelo.</p>
+                    </div>
+                  </div>
+              </div>
+          {% endif %}
+
+          <div class="text-center mt-5">
+              <a href="{{ url_for('index') }}" class="btn-secondary-custom px-4">
+                  <span class="btn-content">
+                    <i class="bi bi-arrow-left-circle-fill me-2"></i>Voltar para a Página Inicial
+                  </span>
+                  <div class="btn-ripple"></div>
+              </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Seção 2: Iniciar Treinamento do Modelo AI #}
+    <div class="col-12 col-lg-9">
+      <div class="feature-card card-success animate__animated animate__fadeInUp mb-4">
+        <div class="card-glow card-glow-success"></div>
+        <div class="card-content">
+          <div class="feature-icon icon-success">
+            <i class="bi bi-cpu"></i>
+            <div class="icon-pulse"></div>
+          </div>
+          <h3 class="feature-title">Iniciar Treinamento do Modelo AI</h3>
+          <p class="feature-description mb-4">
+            Com seu dataset pronto, agora é a hora de iniciar o processo de treinamento!
+          </p>
+
+          <hr class="my-5 border-3">
+
+          {% if dataset_exists %}
+              <div class="action-buttons mt-4">
+                  <form id="trainForm" action="{{ url_for('train') }}" method="post">
+                      <button type="submit" class="btn-success-custom w-100 py-3 animate__animated animate__pulse animate__infinite">
+                          <span class="btn-content">
+                            <i class="bi bi-play-circle-fill me-2"></i>Iniciar Treinamento Agora
+                          </span>
+                          <div class="btn-ripple"></div>
+                      </button>
+                  </form>
+                  <div id="training-spinner" class="text-center mt-3 d-none animate__animated animate__fadeIn">
+                      <div class="loading-spinner" style="width: 3rem; height: 3rem;"></div>
+                      <p class="mt-2 text-muted loading-text-small">Preparando o ambiente e iniciando o treinamento...</p>
+                  </div>
+              </div>
+          {% else %}
+              <div class="alert-custom alert-info animate__animated animate__fadeInDown mb-4">
+                  <div class="toast-content">
+                    <i class="bi bi-lightbulb-fill me-2"></i>
+                    <div>
+                      <h4 class="alert-heading fw-bold mb-1">Dataset Necessário para Treinar</h4>
+                      <p class="mb-0">Para habilitar o botão de treinamento, você precisa ter um dataset carregado e verificado.</p>
+                      <p class="mb-0 mt-2">Consulte a seção "Status e Detalhes do Dataset" acima para mais informações.</p>
+                    </div>
+                  </div>
+              </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+    {# Seção 3: Sobre o Modelo DeepAudio AI #}
+    <div class="col-12 col-lg-9">
+      <div class="feature-card card-secondary animate__animated animate__fadeInUp mb-4">
+          <div class="card-glow card-glow-secondary"></div>
+          <div class="card-content">
+              <div class="feature-icon icon-secondary">
+                  <i class="bi bi-info-circle"></i>
+              </div>
+              <h3 class="feature-title">Sobre o Modelo DeepAudio AI</h3>
+              <p class="feature-description mb-4">
+                  Conheça a inteligência por trás da detecção:
+              </p>
+
+              <div class="row text-center">
+                  <div class="col-md-6 mb-4">
+                      <div class="p-4 border rounded-3 bg-light shadow-sm h-100 d-flex flex-column justify-content-between">
+                          <i class="bi bi-lightbulb-fill text-warning display-4 mb-3"></i>
+                          <h4 class="fw-bold mb-3 feature-title-small">Arquitetura do Modelo</h4>
+                          <p class="text-muted feature-description-small">
+                              Nosso modelo emprega uma arquitetura de Redes Neurais Convolucionais (CNNs) especializada em processamento de áudio, otimizada para identificar padrões complexos em espectrogramas.
+                          </p>
+                      </div>
+                  </div>
+                  <div class="col-md-6 mb-4">
+                      <div class="p-4 border rounded-3 bg-light shadow-sm h-100 d-flex flex-column justify-content-between">
+                          <i class="bi bi-tools text-primary display-4 mb-3"></i>
+                          <h4 class="fw-bold mb-3 feature-title-small">Estratégias de Treinamento</h4>
+                          <p class="text-muted feature-description-small">
+                              Utilizamos *transfer learning* para acelerar o aprendizado e *data augmentation* para aumentar a robustez do modelo, garantindo alta precisão em diversas variações de áudio.
+                          </p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# Loading Overlay Personalizado #}
+<div class="loading-overlay" id="customLoadingOverlay">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Analisando Áudio...</div>
+    <div class="loading-subtitle">Este processo pode levar alguns instantes.</div>
+  </div>
+</div>
+
+{# Estilos CSS Avançados #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const trainForm = document.getElementById('trainForm');
+    const trainingSpinner = document.getElementById('training-spinner');
+    const loadingOverlay = document.getElementById('customLoadingOverlay');
+    const loadingText = loadingOverlay ? loadingOverlay.querySelector('.loading-text') : null;
+    const loadingSubtitle = loadingOverlay ? loadingOverlay.querySelector('.loading-subtitle') : null;
+
+    if (trainForm && trainingSpinner && loadingOverlay) {
+        trainForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            this.querySelector('button[type="submit"]').classList.add('d-none');
+            trainingSpinner.classList.remove('d-none');
+
+            loadingOverlay.style.display = 'flex';
+            if (loadingText) loadingText.textContent = 'Iniciando Treinamento do Modelo...';
+            if (loadingSubtitle) loadingSubtitle.textContent = 'Processando dados, otimizando parâmetros e preparando o ambiente. Por favor, aguarde.';
+
+            fetch(trainForm.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                const clonedResponse = response.clone();
+                if (!response.ok) {
+                    return clonedResponse.json().then(errorData => {
+                        throw new Error(errorData.message || 'Ocorreu um erro no servidor.');
+                    }).catch(() => {
+                        return clonedResponse.text().then(text => {
+                            throw new Error(text || 'Erro de rede ou resposta inesperada do servidor.');
+                        });
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    window.showToast(data.message || 'Treinamento iniciado com sucesso! Você será notificado sobre o progresso.', 'success');
+                } else {
+                    window.showToast(data.message || 'Falha ao iniciar o treinamento. Tente novamente mais tarde.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao enviar formulário de treinamento:', error);
+                window.showToast(`Erro: ${error.message}` || 'Erro de conexão ao tentar iniciar o treinamento. Verifique sua rede.', 'error');
+            })
+            .finally(() => {
+                loadingOverlay.style.display = 'none';
+                const submitButton = trainForm.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.classList.remove('d-none');
+                }
+                trainingSpinner.classList.add('d-none');
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

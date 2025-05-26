@@ -1,24 +1,234 @@
 {% extends 'base.html' %}
-{% block title %}About Us - DeepAudio{% endblock %}
+
+{% block title %}Sobre Nós - DeepAudio: Autenticidade e Segurança em Áudio{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-md-8">
-    <div class="card shadow">
-      <div class="card-header bg-info text-white text-center">
-        <i class="bi bi-info-circle me-2"></i>About Us
-      </div>
-      <div class="card-body">
-        <p>
-          DeepAudio é um projeto inovador focado em análise de áudio, extração de features e detecção de inconsistências.
-          Utilizamos técnicas avançadas de processamento de sinais e aprendizado de máquina para oferecer soluções precisas
-          e eficientes na validação de amostras de voz.
-        </p>
-        <p>
-          Nossa missão é aprimorar a segurança e a confiabilidade em sistemas de reconhecimento de áudio, trazendo inovação
-          e confiança para nossos usuários.
-        </p>
-      </div>
+<div class="hero-section hero-small" role="banner">
+    <div class="hero-background"></div>
+    <div class="hero-content">
+        <header class="text-center py-5 animate__animated animate__fadeInDown">
+            <div class="hero-badge hero-badge-lg mb-4" role="complementary" aria-label="Missão da DeepAudio">
+                <i class="bi bi-info-circle me-2"></i>
+                Nossa Missão
+            </div>
+            <h1 class="hero-title mb-4">
+                Sobre o <span class="brand-gradient">DeepAudio</span>
+            </h1>
+            <p class="hero-subtitle hero-subtitle-lg mb-5">
+                Sua plataforma dedicada a garantir a autenticidade e segurança no vasto universo do áudio digital.
+            </p>
+        </header>
     </div>
-  </div>
 </div>
+
+<div class="container-fluid px-4 py-5">
+    <div class="row g-4 justify-content-center max-width-container mx-auto">
+
+        {# Seção 1: Nossa Visão e Propósito #}
+        <div class="col-12 col-lg-9 d-flex animate__animated animate__fadeInUp">
+            <div class="feature-card card-primary h-100">
+                <div class="card-glow card-glow-primary"></div>
+                <div class="card-content">
+                    <div class="feature-icon icon-primary">
+                        <i class="bi bi-eye-fill"></i>
+                        <div class="icon-pulse"></div>
+                    </div>
+                    <h3 class="feature-title">Nossa Visão e Propósito</h3>
+                    <p class="feature-description">
+                        No DeepAudio, estamos na vanguarda da batalha contra a desinformação no áudio.
+                        Nossa plataforma é a sua ferramenta para um futuro digital mais seguro e transparente.
+                    </p>
+                    <p class="feature-description">
+                        O DeepAudio é um projeto inovador focado em <strong>análise de áudio avançada</strong>,
+                        <strong>extração de <em>features</em> robustas</strong> e, crucialmente, na <strong>detecção precisa de inconsistências</strong>
+                        que indicam a manipulação digital. Desenvolvemos e aplicamos as mais recentes
+                        técnicas de processamento de sinais digitais e algoritmos de aprendizado de máquina
+                        para oferecer soluções precisas e eficientes na validação da autenticidade de amostras de voz.
+                    </p>
+                    <p class="feature-description mb-0">
+                        Em um cenário digital onde a autenticidade de informações é cada vez mais desafiadora,
+                        nossa missão é clara: <strong>aprimorar a segurança e a confiabilidade</strong> em sistemas que dependem de áudio.
+                        Trabalhamos incansavelmente para capacitar indivíduos e organizações a identificar vozes reais de simulações sintéticas,
+                        trazendo inovação, transparência e confiança para o universo do áudio digital.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {# Seção 2: Como o DeepAudio Funciona? #}
+        <div class="col-12 col-lg-9 animate__animated animate__fadeInUp animate__delay-0-2s">
+            <h2 class="text-center fw-bold text-white mb-5 hero-subtitle">
+                <i class="bi bi-cpu-fill me-3"></i>Como o DeepAudio Funciona?
+            </h2>
+            <div class="row g-4">
+                <div class="col-md-6 d-flex">
+                    <div class="feature-card card-secondary h-100">
+                        <div class="card-glow card-glow-secondary"></div>
+                        <div class="card-content">
+                            <div class="feature-icon icon-secondary">
+                                <i class="bi bi-upload"></i>
+                                <div class="icon-pulse"></div>
+                            </div>
+                            <h3 class="feature-title"><span class="step-number">1</span> Carregue seu Áudio</h3>
+                            <p class="feature-description mb-0">Envie amostras de áudio para treinamento (datasets) ou para detecção de deepfakes.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 d-flex">
+                    <div class="feature-card card-secondary h-100">
+                        <div class="card-glow card-glow-secondary"></div>
+                        <div class="card-content">
+                            <div class="feature-icon icon-secondary">
+                                <i class="bi bi-sliders"></i>
+                                <div class="icon-pulse"></div>
+                            </div>
+                            <h3 class="feature-title"><span class="step-number">2</span> Pré-processamento e Análise</h3>
+                            <p class="feature-description mb-0">Nossa IA extrai <em>features</em> cruciais e as prepara para o modelo de detecção.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 d-flex">
+                    <div class="feature-card card-secondary h-100">
+                        <div class="card-glow card-glow-secondary"></div>
+                        <div class="card-content">
+                            <div class="feature-icon icon-secondary">
+                                <i class="bi bi-robot"></i>
+                                <div class="icon-pulse"></div>
+                            </div>
+                            <h3 class="feature-title"><span class="step-number">3</span> Treinamento ou Detecção</h3>
+                            <p class="feature-description mb-0">Treine um novo modelo robusto ou use um existente para analisar a autenticidade.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 d-flex">
+                    <div class="feature-card card-secondary h-100">
+                        <div class="card-glow card-glow-secondary"></div>
+                        <div class="card-content">
+                            <div class="feature-icon icon-secondary">
+                                <i class="bi bi-bar-chart-fill"></i>
+                                <div class="icon-pulse"></div>
+                            </div>
+                            <h3 class="feature-title"><span class="step-number">4</span> Resultados e Insights</h3>
+                            <p class="feature-description mb-0">Receba feedback claro sobre a autenticidade e a confiança do modelo.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# Gráfico do Processo #}
+            <div class="col-12 text-center animate__animated animate__fadeInUp animate__delay-0-3s mt-5">
+                <h3 class="feature-title mb-4">Fluxo do Processo DeepAudio</h3>
+                <div class="chart-container">
+                    <canvas id="processChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        {# Citação em Destaque #}
+        <div class="col-12 col-lg-9 my-5 text-center animate__animated animate__fadeInUp animate__delay-0-4s">
+            <blockquote class="blockquote quote-custom p-4 rounded-4 shadow-lg glass-bg">
+                <div class="card-glow card-glow-primary"></div>
+                <i class="bi bi-quote quote-icon quote-icon-lg"></i>
+                <p class="mb-0 hero-title">"Acreditamos que a tecnologia deve ser uma ferramenta para a <span class="brand-gradient">verdade</span>."</p>
+                <footer class="blockquote-footer mt-3 text-white fs-5 opacity-75">
+                    Equipe DeepAudio
+                </footer>
+            </blockquote>
+        </div>
+
+        {# Seção Nossos Pilares Fundamentais #}
+        <div class="col-12 col-lg-9 text-center animate__animated animate__fadeInUp animate__delay-0-6s">
+            <h2 class="fw-bold mb-5 text-white hero-subtitle">
+                <i class="bi bi-hand-thumbs-up-fill me-2"></i>Nossos Pilares Fundamentais
+            </h2>
+            <div class="row g-3 justify-content-center">
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="feature-card feature-badge animate__animated animate__zoomIn animate__delay-0-7s">
+                        <div class="card-glow card-glow-primary"></div>
+                        <div class="card-content py-3 px-4 d-flex flex-column align-items-center gap-2">
+                            <i class="bi bi-robot me-1 text-primary"></i>
+                            <span class="fw-semibold text-primary">Inteligência Artificial</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="feature-card feature-badge animate__animated animate__zoomIn animate__delay-0-8s">
+                        <div class="card-glow card-glow-success"></div>
+                        <div class="card-content py-3 px-4 d-flex flex-column align-items-center gap-2">
+                            <i class="bi bi-shield-fill-check me-1 text-success"></i>
+                            <span class="fw-semibold text-success">Segurança Digital</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="feature-card feature-badge animate__animated animate__zoomIn animate__delay-0-9s">
+                        <div class="card-glow card-glow-primary"></div>
+                        <div class="card-content py-3 px-4 d-flex flex-column align-items-center gap-2">
+                            <i class="bi bi-lightbulb-fill me-1 text-primary"></i>
+                            <span class="fw-semibold text-primary">Inovação Contínua</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="feature-card feature-badge animate__animated animate__zoomIn animate__delay-1-0s">
+                        <div class="card-glow card-glow-warning"></div>
+                        <div class="card-content py-3 px-4 d-flex flex-column align-items-center gap-2">
+                            <i class="bi bi-graph-up-arrow me-1 text-warning"></i>
+                            <span class="fw-semibold text-warning">Análise de Dados</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="feature-card feature-badge animate__animated animate__zoomIn animate__delay-1-1s">
+                        <div class="card-glow card-glow-secondary"></div>
+                        <div class="card-content py-3 px-4 d-flex flex-column align-items-center gap-2">
+                            <i class="bi bi-people-fill me-1 text-secondary"></i>
+                            <span class="fw-semibold text-secondary">Transparência</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Seção de Chamada para Ação (CTA) #}
+        <div class="col-12 col-lg-9 text-center mt-5 mb-5 animate__animated animate__fadeInUp animate__delay-0-8s">
+            <div class="feature-card card-secondary p-4 py-5 shadow-lg">
+                <div class="card-glow card-glow-secondary"></div>
+                <div class="card-content">
+                    <h3 class="feature-title mb-4">Pronto para a Autenticidade?</h3>
+                    <p class="feature-description mb-4">
+                        Experimente o poder do DeepAudio na detecção de deepfakes de áudio ou inicie o treinamento do seu próprio modelo.
+                    </p>
+                    <p class="feature-description-small text-muted mb-4">
+                        Junte-se à revolução da segurança digital agora!
+                    </p>
+                    <div class="action-buttons d-flex flex-column flex-sm-row justify-content-center gap-3">
+                        <a href="{{ url_for('fake_detector') }}" class="btn-primary-custom btn-lg-custom px-5" aria-label="Detectar autenticidade de áudio">
+                            <span class="btn-content">
+                                <i class="bi bi-search me-2"></i>Detectar Áudio
+                            </span>
+                            <div class="btn-ripple"></div>
+                        </a>
+                        <a href="{{ url_for('train') }}" class="btn-secondary-custom btn-lg-custom px-5" aria-label="Treinar um modelo de detecção">
+                            <span class="btn-content">
+                                <i class="bi bi-cpu me-2"></i>Treinar Modelo
+                            </span>
+                            <div class="btn-ripple"></div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>{# /row #}
+</div>{# /container-fluid #}
+
+{# Importa o arquivo CSS externo #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

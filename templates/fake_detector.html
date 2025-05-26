@@ -1,77 +1,502 @@
 {% extends 'base.html' %}
-{% block title %}Detector de Fake - DeepAudio{% endblock %}
+
+{% block title %}DeepAudio | Detector de Deepfake de Áudio: Verifique a Autenticidade da Voz com IA{% endblock %}
+
+{% block head_meta %}
+    {{ super() }}
+    <meta name="description" content="Utilize o DeepAudio, sua ferramenta de IA avançada para detectar deepfakes de áudio e vozes sintéticas. Garanta a autenticidade de gravações com nossa análise precisa. Experimente agora a segurança da voz digital e combata a desinformação.">
+    <meta name="keywords" content="detector deepfake áudio, identificar voz falsa, autenticidade de gravações, áudio sintético, verificar voz IA, deepfake de voz, segurança da comunicação, inteligência artificial em áudio, detecção de fraude, análise de áudio, IA de voz">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ url_for('fake_detector', _external=True) }}">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Detector de Deepfake de Áudio | DeepAudio",
+      "description": "Utilize o DeepAudio, sua ferramenta de IA avançada para detectar deepfakes de áudio e vozes sintéticas. Garanta a autenticidade de gravações com nossa análise precisa. Experimente agora a segurança da voz digital e combata a desinformação.",
+      "url": "{{ url_for('fake_detector', _external=True) }}",
+      "publisher": {
+        "@type": "Organization",
+        "name": "DeepAudio",
+        "url": "{{ url_for('index', _external=True) }}",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "{{ url_for('static', filename='img/logo.png') }}"
+        }
+      },
+      "mainEntity": {
+        "@type": "Service",
+        "name": "Detecção de Deepfake de Áudio",
+        "serviceType": "Inteligência Artificial, Análise de Áudio",
+        "description": "Serviço online que utiliza inteligência artificial para detectar se uma amostra de áudio é uma voz real ou um deepfake (voz sintética).",
+        "provider": {
+          "@type": "Organization",
+          "name": "DeepAudio"
+        },
+        "areaServed": {
+          "@type": "Place",
+          "name": "Global"
+        },
+        "url": "{{ url_for('fake_detector', _external=True) }}",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "BRL",
+          "price": "0",
+          "availability": "https://schema.org/InStock",
+          "validFrom": "2024-01-01"
+        }
+      },
+      "potentialAction": {
+        "@type": "ListenAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "{{ url_for('fake_detector', _external=True) }}",
+          "inLanguage": "pt-BR",
+          "actionPlatform": [
+            "http://schema.org/DesktopWebPlatform",
+            "http://schema.org/MobileWebPlatform"
+          ]
+        },
+        "expectsAcceptanceOf": {
+          "@type": "Offer",
+          "name": "DeepAudio - Detecção de Deepfake de Áudio"
+        }
+      }
+    }
+    </script>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-md-8">
-    <div class="card shadow">
-      <div class="card-header bg-danger text-white text-center">
-        <i class="bi bi-shield-lock me-2"></i>Detector de Fake
-      </div>
-      <div class="card-body">
-        <form action="{{ url_for('fake_detector') }}" method="post" enctype="multipart/form-data" id="predictionForm">
-          <div class="mb-3">
-            <label for="voice_sample" class="form-label">Selecione uma amostra de voz:</label>
-            <input type="file" class="form-control" name="voice_sample" accept="audio/*" required>
-          </div>
-          <div class="text-center">
-            <button type="submit" class="btn btn-danger" id="submitPredictionBtn" {% if not model_exists %}disabled{% endif %}>
-              <i class="bi bi-upload me-1"></i>Enviar Amostra
-            </button>
-          </div>
-        </form>
-
-        {% if not model_exists %}
-        <small class="text-danger mt-2 d-block text-center">Modelo não treinado. Treine um modelo primeiro na página inicial.</small>
-        {% endif %}
-
-        {# Bloco para exibir o resultado da predição #}
-        {% if result %}
-        <div class="mt-4 p-3 border rounded
-          {% if result.label == 'FAKE' %}
-            border-danger bg-danger-subtle text-danger
-          {% else %}
-            border-success bg-success-subtle text-success
-          {% endif %}
-          d-flex align-items-center">
-          <i class="bi
-            {% if result.label == 'FAKE' %}
-              bi-exclamation-triangle-fill
-            {% else %}
-              bi-check-circle-fill
-            {% endif %}
-            me-3 display-5"></i>
-          <div>
-            <h5 class="mb-1 fw-bold">Resultado para '{{ result.filename }}':</h5>
-            <p class="mb-0">
-              Este áudio é **<span class="fw-bold">{{ result.label }}</span>** com confiança de **{{ result.confidence }}**.
-              (Método: {{ result.method }})
-            </p>
-          </div>
+<main>
+    <div class="hero-section hero-small">
+        <div class="hero-background"></div>
+        <div class="hero-content">
+            <header class="text-center py-4 animate__animated animate__fadeInDown animate__slow">
+                <div class="hero-badge mb-3">
+                    <i class="bi bi-robot me-2"></i>
+                    Tecnologia IA Avançada
+                </div>
+                <h1 class="hero-title mb-3">
+                    <span class="brand-gradient">Detecte Deepfakes de Áudio</span> com Precisão Inigualável
+                </h1>
+                <p class="hero-subtitle mb-4">
+                    Utilize nossa inteligência artificial de ponta para verificar a autenticidade de qualquer voz e proteja-se contra manipulações.
+                </p>
+            </header>
         </div>
-        {% endif %}
-      </div>
     </div>
+
+    {# Seção para exibir o resultado da análise no topo, se disponível #}
+    {% if result %}
+    <section id="analysis-result-section" class="container-fluid px-4 py-5" aria-labelledby="analysis-result-title">
+        <div class="row g-4 justify-content-center max-width-container mx-auto">
+            <div class="col-12 col-lg-9 d-flex flex-column">
+                <div class="feature-card glass-card flex-grow-1 animate__animated animate__fadeInUp animate__slow result-card">
+                    <div class="card-content text-center">
+                        <h2 id="analysis-result-title" class="feature-title mb-4">Resultado da Análise de Autenticidade</h2>
+
+                        <div class="p-4 rounded-4 shadow-lg
+                            {% if result.label == 'FAKE' %}
+                                bg-danger-subtle text-danger border border-danger border-4 animate__animated animate__headShake animate__slow
+                            {% else %}
+                                bg-success-subtle text-success border border-success border-4 animate__animated animate__pulse animate__slow
+                            {% endif %}
+                            d-flex flex-column flex-md-row align-items-center justify-content-center result-box-feedback" role="status" aria-live="polite">
+                            <i class="bi
+                                {% if result.label == 'FAKE' %}
+                                    bi-exclamation-triangle-fill
+                                {% else %}
+                                    bi-check-circle-fill
+                                {% endif %}
+                                me-md-3 mb-2 mb-md-0 result-icon"></i>
+                            <div>
+                                <h3 class="mb-1 fw-bold result-title">Verificação Concluída!</h3>
+                                <p class="mb-1 result-text">Amostra: <span class="fw-semibold">{{ result.filename }}</span></p>
+                                <p class="mb-1 result-text">Este áudio é <strong class="text-uppercase result-label fw-bold">{{ result.label }}</strong></p>
+                                {% if result.label == 'FAKE' %}
+                                    <p class="mb-0 result-subtext text-danger">⚠️ **ATENÇÃO:** Grande probabilidade de ser áudio sintético/deepfake. </p>
+                                {% else %}
+                                    <p class="mb-0 result-subtext text-success">✅ Áudio genuíno detectado. </p>
+                                {% endif %}
+                                <p class="mb-0 result-text mt-2">Confiança do Modelo: <span class="fw-semibold">{{ result.confidence }}</span></p>
+                                <p class="mb-0 mt-1 text-muted fst-italic result-method"><small>Método de Análise: {{ result.method }}</small></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <a href="#analysis-section" class="btn btn-primary-custom-sm">
+                                <i class="bi bi-arrow-up-circle me-2"></i>Realizar Nova Análise
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="container-fluid px-4 py-5">
+        <div class="row g-4 justify-content-center max-width-container mx-auto">
+
+            {# Seção Principal: Análise de Autenticidade de Áudio com Formulário #}
+            <section id="analysis-section" class="col-12 col-lg-9 d-flex flex-column" aria-labelledby="analysis-title">
+                <div class="feature-card glass-card flex-grow-1 animate__animated animate__fadeInUp animate__slow">
+                    <div class="card-content">
+                        <div class="feature-icon icon-primary">
+                            <i class="bi bi-headset"></i>
+                            <div class="icon-pulse"></div>
+                        </div>
+                        <h2 id="analysis-title" class="feature-title">Envie seu Áudio para Análise de Autenticidade</h2>
+                        <p class="feature-description mb-4">
+                            Faça o upload de sua amostra de voz e nossa IA irá analisar profundamente para determinar se é uma voz humana real ou um deepfake.
+                            É rápido, seguro e essencial para a sua segurança digital.
+                        </p>
+
+                        {# Mensagens Flash do Backend #}
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                <div class="mb-4" role="alert">
+                                    {% for category, message in messages %}
+                                        <div class="alert alert-{{ category }} alert-dismissible fade show animate__animated animate__fadeIn animate__slow">
+                                            {{ message }}
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar alerta"></button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+
+                        {# Área para exibir mensagens de erro do frontend (validação de arquivo) #}
+                        <div id="fileErrorMessages" class="mb-4" style="display: none;" role="alert">
+                            <div class="alert alert-danger alert-dismissible fade show animate__animated animate__fadeIn animate__slow">
+                                <span id="errorMessageText"></span>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar alerta"></button>
+                            </div>
+                        </div>
+
+                        <hr class="my-5 border-3">
+
+                        <form action="{{ url_for('fake_detector') }}" method="post" enctype="multipart/form-data" id="predictionForm" aria-label="Formulário de Análise de Áudio para Detecção de Deepfake">
+                            <div class="mb-4">
+                                <label for="audio_file" class="form-label fs-5 fw-semibold text-primary animate__animated animate__fadeInLeft animate__slow">
+                                    <i class="bi bi-file-earmark-arrow-up-fill me-2"></i>Selecione ou Arraste seu Arquivo de Áudio:
+                                </label>
+                                <div id="audioDropZone" class="upload-zone d-flex flex-column justify-content-center align-items-center animate__animated animate__zoomIn animate__slow" role="button" tabindex="0" aria-controls="audio_file">
+                                    <i class="bi bi-cloud-arrow-up upload-icon mb-3"></i>
+                                    <div class="upload-text">
+                                        <strong>Arraste e solte o arquivo de áudio aqui</strong>
+                                        <span>ou <span class="text-primary fw-bold">clique para selecionar</span></span>
+                                    </div>
+                                    <input type="file" class="upload-input" id="audio_file" name="voice_sample" accept="audio/mpeg, audio/wav, audio/flac, audio/ogg" required aria-describedby="file-formats-info">
+                                    <span id="selectedFileName" class="mt-3 fs-5 fw-bold text-success animate__animated animate__fadeIn animate__slow" style="display: none;"></span>
+                                    <p class="upload-info mt-2" id="file-formats-info"><small>Formatos suportados: MP3, WAV, FLAC, OGG. Tamanho máximo: 50MB.</small></p>
+                                </div>
+                            </div>
+
+                            <div class="progress mt-4 mb-4" style="height: 25px; display: none;" id="uploadProgressBar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso do upload do arquivo">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 0%;">0%</div>
+                            </div>
+
+                            <div class="text-center mt-5 action-buttons">
+                                <button type="submit" class="btn-primary-custom w-100 py-3 animate__animated animate__pulse animate__infinite animate__slow" id="submitPredictionBtn" {% if not model_exists %}disabled data-model-exists="false"{% else %}data-model-exists="true"{% endif %} aria-label="Iniciar Análise de Amostra de Voz">
+                                    <span class="btn-content">
+                                        {% if model_exists %}
+                                        <i class="bi bi-journal-check me-2"></i>Iniciar Análise de Áudio
+                                        {% else %}
+                                        <i class="bi bi-lock-fill me-2"></i>Modelo de Detecção Indisponível
+                                        {% endif %}
+                                    </span>
+                                    <div class="btn-ripple"></div>
+                                </button>
+                            </div>
+                        </form>
+
+                        {% if not model_exists %}
+                        <div class="alert-custom alert-warning text-center mt-5 py-3 rounded-3 shadow-sm animate__animated animate__fadeInDown animate__slow" role="alert">
+                            <div class="toast-content">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <div>
+                                    <h3 class="alert-heading fw-bold mb-1">Atenção: Modelo de Detecção não Treinado!</h3>
+                                    <p class="mb-0">Para utilizar o detector de deepfakes, por favor, <a href="{{ url_for('train') }}" class="alert-link fw-bold">treine um modelo</a> em nossa plataforma de IA.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            {# Seção 1: Análise Avançada com Pesquisa (Card Novo e Integrado) #}
+            <section id="advanced-analysis-section" class="col-12 col-lg-9 d-flex flex-column" aria-labelledby="advanced-search-title">
+                <div class="feature-card glass-card flex-grow-1 animate__animated animate__fadeInUp animate__slow">
+                    <div class="card-content">
+                        <div class="feature-icon icon-info">
+                            <i class="bi bi-search-heart-fill"></i>
+                        </div>
+                        <h2 id="advanced-search-title" class="feature-title">Análise Avançada: Autenticidade, Metadados e Contexto Vocal</h2>
+                        <p class="feature-description mb-4">
+                            Leve sua verificação de áudio para o próximo nível. Nossa análise avançada vai além da detecção básica de deepfakes,
+                            oferecendo uma investigação profunda da autenticidade do áudio, dos metadados do arquivo, das características vocais
+                            do falante e do contexto da gravação.
+                        </p>
+
+                        <hr class="my-5 border-3">
+
+                        {# Nova Seção: Pesquisa e Verificação Detalhada - Integrada aqui #}
+                        <h3 class="feature-title small-title mb-4">Pesquisa e Verificação Detalhada</h3>
+                        <p class="feature-description mb-4">
+                            Utilize nossa ferramenta de pesquisa para investigar áudios relacionados a personalidades públicas ou para
+                            focar em aspectos específicos da análise.
+                        </p>
+
+                        <form class="advanced-research-form" aria-label="Formulário de Pesquisa Avançada">
+                            <div class="mb-3">
+                                <label for="personalityName" class="form-label text-start w-100 fw-semibold text-primary">
+                                    <i class="bi bi-person-bounding-box me-2"></i>Nome da Personalidade:
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="personalityName" placeholder="Ex: Barack Obama, Elon Musk" aria-label="Nome da Personalidade">
+                                    <button class="btn btn-primary-custom-sm" type="button" aria-label="Pesquisar Personalidade">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-4 text-start advanced-options">
+                                <label class="form-label w-100 fw-semibold text-primary mb-3">
+                                    <i class="bi bi-funnel-fill me-2"></i>Opções de Análise:
+                                </label>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="analyzeMetadata" checked>
+                                    <label class="form-check-label text-muted" for="analyzeMetadata">Analisar Metadados do Arquivo</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="analyzeContext" checked>
+                                    <label class="form-check-label text-muted" for="analyzeContext">Análise de Contexto da Fala</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="advancedResearch">
+                                    <label class="form-check-label text-muted" for="advancedResearch">Pesquisa Aprofundada na Base de Dados</label>
+                                </div>
+                            </div>
+
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn-primary-custom w-100 py-3" id="submitAdvancedAnalysisBtn" aria-label="Iniciar Pesquisa Avançada">
+                                    <span class="btn-content">
+                                        <i class="bi bi-journal-magnifying-glass me-2"></i>Iniciar Pesquisa Avançada
+                                    </span>
+                                    <div class="btn-ripple"></div>
+                                </button>
+                            </div>
+                        </form>
+
+                        {# Novo Drop Zone Discreto #}
+                        <div id="advancedAnalysisDropZone" class="compact-upload-zone text-center mt-4" role="button" tabindex="0" aria-label="Arraste e solte um arquivo de áudio aqui para análise avançada">
+                            <i class="bi bi-mic-fill me-2"></i>
+                            <span class="d-none d-md-inline">Arraste e solte o áudio aqui para análise avançada</span>
+                            <span class="d-inline d-md-none">Arraste ou toque para áudio</span>
+                        </div>
+
+                        <hr class="my-5 border-3">
+
+                        <div class="row g-3 detailed-analysis-features">
+                            <div class="col-12">
+                                <div class="d-flex align-items-start feature-item">
+                                    <div class="icon-small-circle me-3 bg-light-info text-info">
+                                        <i class="bi bi-mic-fill"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold mb-1">Análise de Autenticidade do Sinal de Voz</h5>
+                                        <p class="text-muted mb-0">Nossa IA examina as microvariações e sutilezas acústicas que são distintivas da voz humana real, diferenciando-as de padrões sintéticos gerados por modelos de IA.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-start feature-item">
+                                    <div class="icon-small-circle me-3 bg-light-success text-success">
+                                        <i class="bi bi-journal-medical"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold mb-1">Verificação de Metadados do Arquivo</h5>
+                                        <p class="mb-0 text-muted">Analisamos informações intrínsecas ao arquivo de áudio, como data de criação, software de gravação, modificações e outras pistas digitais que podem indicar manipulação ou origem.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-start feature-item">
+                                    <div class="icon-small-circle me-3 bg-light-warning text-warning">
+                                        <i class="bi bi-person-badge-fill"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold mb-1">Análise Biometria Vocal e Identificação do Falante</h5>
+                                        <p class="text-muted mb-0">Utilizamos técnicas de biometria vocal para identificar padrões únicos do falante, permitindo uma verificação mais robusta da consistência da voz ao longo do tempo e contra bases de dados conhecidas.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex align-items-start feature-item">
+                                    <div class="icon-small-circle me-3 bg-light-danger text-danger">
+                                        <i class="bi bi-chat-dots-fill"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold mb-1">Análise de Contexto e Coerência da Fala</h5>
+                                        <p class="mb-0 text-muted">Além do sinal, nossa análise considera o contexto da fala, buscando por inconsistências no tom, inflexão, fluidez e até mesmo na lógica do discurso, que podem ser indicativos de manipulação.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert-custom alert-info text-center mt-5 py-3 rounded-3 shadow-sm animate__animated animate__fadeInDown animate__slow" role="alert">
+                            <div class="toast-content">
+                                <i class="bi bi-person-lines-fill me-2"></i>
+                                <div>
+                                    <h3 class="alert-heading fw-bold mb-1">Recomendado para Personalidades Públicas</h3>
+                                    <p class="mb-0">Esta análise aprofundada é particularmente útil para jornalistas, pesquisadores, figuras públicas e qualquer pessoa que precise de uma verificação de autenticidade rigorosa de áudios em contextos sensíveis.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {# Seção 2: Qualidade do Áudio para Análise Precisa #}
+            <section id="audio-quality-section" class="col-12 col-lg-9 d-flex flex-column" aria-labelledby="quality-title">
+                <div class="feature-card glass-card flex-grow-1 animate__animated animate__fadeInUp animate__slow">
+                    <div class="card-content">
+                        <div class="feature-icon icon-secondary">
+                            <i class="bi bi-sliders2"></i>
+                        </div>
+                        <h2 id="quality-title" class="feature-title">Impacto da Qualidade do Áudio na Detecção de Deepfakes</h2>
+                        <p class="feature-description mb-4">
+                            A eficácia de qualquer detector de deepfakes é diretamente influenciada pela qualidade do áudio de entrada.
+                            Para assegurar a máxima precisão, nosso pipeline realiza uma análise rigorosa da qualidade do áudio:
+                        </p>
+
+                        {# Novo Drop Zone Discreto #}
+                        <div id="audioQualityDropZone" class="compact-upload-zone text-center mt-4" role="button" tabindex="0" aria-label="Arraste e solte um arquivo de áudio aqui para análise de qualidade">
+                            <i class="bi bi-file-earmark-music-fill me-2"></i>
+                            <span class="d-none d-md-inline">Arraste e solte o áudio aqui para análise de qualidade</span>
+                            <span class="d-inline d-md-none">Arraste ou toque para áudio</span>
+                        </div>
+
+                        <div class="audio-quality-pipeline mt-4">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <h5 class="fw-bold mb-1"><i class="bi bi-arrow-right-square-fill me-2 text-primary"></i>1. Pré-processamento e Normalização Inteligente</h5>
+                                    <p class="mb-0 text-muted">Ajustamos seu áudio para um formato ideal, otimizando a taxa de amostragem, canais e normalizando o volume para consistência e clareza.</p>
+                                </li>
+                                <li class="list-group-item">
+                                    <h5 class="fw-bold mb-1"><i class="bi bi-bar-chart-fill me-2 text-info"></i>2. Análise Técnica Detalhada de Propriedades</h5>
+                                    <p class="mb-0 text-muted">Avaliamos métricas cruciais como distorção (clipping), Relação Sinal/Ruído (SNR), proporção de silêncio (Silence Ratio), faixa dinâmica (Dynamic Range) e largura de banda (Bandwidth).</p>
+                                </li>
+                                <li class="list-group-item">
+                                    <h5 class="fw-bold mb-1"><i class="bi bi-ear-fill me-2 text-success"></i>3. Avaliação Perceptual Avançada (Opcional)</h5>
+                                    <p class="mb-0 text-muted">Com uma referência de áudio, empregamos métricas como PESQ, STOI e SI-SDR para uma avaliação da qualidade perceptual da fala, simulando a escuta humana.</p>
+                                </li>
+                                <li class="list-group-item">
+                                    <h5 class="fw-bold mb-1"><i class="bi bi-clipboard-data-fill me-2 text-warning"></i>4. Relatório Abrangente da Análise de Qualidade</h5>
+                                    <p class="mb-0 text-muted">Oferecemos um relatório detalhado em formatos como JSON, PDF ou via API, fornecendo todas as métricas de qualidade do áudio para sua compreensão.</p>
+                                </li>
+                            </ul>
+                        </div>
+                        <p class="feature-description mt-4 mb-0 text-muted">
+                            <small>Áudios nítidos e com mínima interferência de ruídos garantem a máxima performance do nosso algoritmo de detecção de deepfakes.</small>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            {# Seção 4: Benefícios e a Importância da Detecção #}
+            <section id="benefits-section" class="col-12 col-lg-9 d-flex flex-column" aria-labelledby="why-detect-title">
+                <div class="feature-card glass-card flex-grow-1 animate__animated animate__fadeInUp animate__slow">
+                    <div class="card-content">
+                        <div class="feature-icon icon-secondary">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <h2 id="why-detect-title" class="feature-title">Por Que a Detecção de Deepfakes de Áudio é Essencial?</h2>
+                        <p class="feature-description mb-4">
+                            A proliferação de vozes sintéticas realistas exige ferramentas confiáveis para diferenciar o real do fabricado.
+                            Deepfakes de áudio representam riscos significativos e nossa plataforma oferece proteção contra:
+                        </p>
+                        <ul class="list-group list-group-flush benefit-list">
+                            <li class="list-group-item"><i class="bi bi-x-circle-fill me-2 text-danger"></i> Fraudes e Cibercrimes Baseados em Voz</li>
+                            <li class="list-group-item"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i> Desinformação e Notícias Falsas Propagadas por Áudio</li>
+                            <li class="list-group-item"><i class="bi bi-check-circle-fill me-2 text-success"></i> Comprometimento da Reputação e Identidade Digital</li>
+                            <li class="list-group-item"><i class="bi bi-envelope-fill me-2 text-info"></i> Violações de Privacidade em Comunicações</li>
+                        </ul>
+                        <p class="feature-description mt-4 mb-0 text-muted">
+                            <small>No DeepAudio, estamos empenhados em fortalecer a confiança e a segurança na comunicação digital, fornecendo uma tecnologia de ponta.</small>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            {# Seção 5: Como Funciona a Detecção de Deepfake de Áudio? #}
+            <section id="how-it-works-section" class="col-12 col-lg-9 d-flex flex-column" aria-labelledby="how-it-works-title" itemscope itemtype="https://schema.org/HowTo">
+                <meta itemprop="name" content="Como Funciona a Detecção de Deepfake de Áudio com DeepAudio">
+                <meta itemprop="description" content="Siga os passos para analisar a autenticidade de uma amostra de áudio usando nossa inteligência artificial avançada.">
+                <div class="feature-card glass-card flex-grow-1 animate__animated animate__fadeInUp animate__slow">
+                    <div class="card-content">
+                        <div class="feature-icon icon-secondary">
+                            <i class="bi bi-tools"></i>
+                        </div>
+                        <h2 id="how-it-works-title" class="feature-title">Nosso Processo: Como a IA do DeepAudio Detecta Deepfakes?</h2>
+                        <p class="feature-description mb-4">
+                            Nosso sistema utiliza algoritmos de aprendizado de máquina de última geração para uma análise profunda e multifacetada do áudio.
+                            Detectamos as sutilezas e características únicas que distinguem vozes humanas genuínas de conteúdos gerados por IA, como síntese e clonagem de voz, em um processo simplificado:
+                        </p>
+                        <div class="row text-center mt-4 how-to-steps">
+                            <div class="col-md-4" itemprop="step" itemscope itemtype="https://schema.org/HowToStep">
+                                <meta itemprop="name" content="1. Carregue seu Arquivo de Áudio">
+                                <div class="icon-circle mb-3 bg-light-primary text-primary">
+                                    <i class="bi bi-cloud-arrow-up"></i>
+                                </div>
+                                <h5 class="fw-bold mb-2" itemprop="text">1. Envie o Áudio</h5>
+                                <p class="text-muted small">Carregue sua amostra de voz (MP3, WAV, FLAC ou OGG).</p>
+                            </div>
+                            <div class="col-md-4" itemprop="step" itemscope itemtype="https://schema.org/HowToStep">
+                                <meta itemprop="name" content="2. Análise da IA">
+                                <div class="icon-circle mb-3 bg-light-info text-info">
+                                    <i class="bi bi-cpu"></i>
+                                </div>
+                                <h5 class="fw-bold mb-2" itemprop="text">2. Análise da IA</h5>
+                                <p class="text-muted small">Nosso modelo de IA processa o áudio, buscando por padrões de deepfake.</p>
+                            </div>
+                            <div class="col-md-4" itemprop="step" itemscope itemtype="https://schema.org/HowToStep">
+                                <meta itemprop="name" content="3. Receba o Resultado">
+                                <div class="icon-circle mb-3 bg-light-success text-success">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                                <h5 class="fw-bold mb-2" itemprop="text">3. Veja o Resultado</h5>
+                                <p class="text-muted small">Receba instantaneamente o veredito: Áudio Real ou Deepfake.</p>
+                            </div>
+                        </div>
+                        <p class="feature-description mt-4 mb-0 text-muted">
+                            <small>Nosso algoritmo é continuamente atualizado para combater as tecnologias de síntese de voz mais recentes e sofisticadas.</small>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</main>
+
+{# Loading Overlay Personalizado #}
+<div class="loading-overlay" id="customLoadingOverlay">
+  <div class="loading-content">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Analisando Áudio...</div>
+    <div class="loading-subtitle">Este processo pode levar alguns instantes.</div>
   </div>
 </div>
+
+{# Estilos CSS Avançados (Manter ou ajustar em style.css) #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 {% endblock %}
 
 {% block scripts %}
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const predictionForm = document.getElementById('predictionForm');
-    const submitPredictionBtn = document.getElementById('submitPredictionBtn');
-    const loadingOverlay = document.getElementById('loadingOverlay'); // O overlay global do base.html
-
-    if (predictionForm) {
-      predictionForm.addEventListener('submit', function() {
-        // Desabilita o botão e mostra o overlay
-        submitPredictionBtn.disabled = true;
-        submitPredictionBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
-        if (loadingOverlay) {
-          loadingOverlay.style.display = 'flex'; // Mostra o overlay de carregamento
-        }
-      });
-    }
-  });
-</script>
+{{ super() }}
+<script src="{{ url_for('static', filename='js/fake_detector.js') }}"></script> {# Carrega o script JS externo #}
 {% endblock %}
