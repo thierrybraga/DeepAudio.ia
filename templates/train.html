@@ -4,16 +4,248 @@
 
 {% block head %}
   {{ super() }}
-  <meta name="description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status, as métricas e a qualidade do seu dataset carregado, e inicie o treinamento com um clique.">
-  <meta name="keywords" content="treinamento IA, modelo de áudio, deepfake, detecção de áudio, machine learning, dataset, DeepAudio, qualidade de áudio, amostras de áudio, tempo de áudio, taxa de amostragem">
+  <meta name="description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status e a qualidade do seu dataset e inicie o treinamento com um clique.">
+  <meta name="keywords" content="treinamento IA, modelo de áudio, deepfake, detecção de áudio, machine learning, dataset, DeepAudio, qualidade de áudio">
   <meta name="robots" content="index, follow">
   <meta property="og:title" content="Treinamento do Modelo - DeepAudio">
-  <meta property="og:description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status, as métricas e a qualidade do seu dataset.">
+  <meta property="og:description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status e a qualidade do seu dataset.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ request.url }}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Treinamento do Modelo - DeepAudio">
-  <meta name="twitter:description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status, as métricas e a qualidade do seu dataset.">
+  <meta name="twitter:description" content="Treine um novo modelo de inteligência artificial DeepAudio para detecção de deepfakes de áudio. Verifique o status e a qualidade do seu dataset.">
+
+  <!-- Enhanced styles for training interface -->
+  <style>
+    /* Enhanced Training Interface Styles */
+    .training-feedback-area {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 15px;
+      padding: 2rem;
+      margin: 2rem 0;
+      color: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .progress-container {
+      background: rgba(255,255,255,0.2);
+      border-radius: 25px;
+      padding: 5px;
+      margin: 1rem 0;
+    }
+
+    .progress {
+      height: 30px;
+      background: transparent;
+    }
+
+    .progress-bar {
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .metric-card {
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: transform 0.2s ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .metric-value {
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin-top: 0.5rem;
+      font-family: 'Courier New', monospace;
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .phase-indicator {
+      display: flex;
+      align-items: center;
+      margin: 1rem 0;
+      padding: 1rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+    }
+
+    .phase-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .cv-results, .validation-metrics {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem 0;
+      min-height: 100px;
+    }
+
+    .cv-metric, .val-metric {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.9rem;
+    }
+
+    .cv-metric:last-child, .val-metric:last-child {
+      border-bottom: none;
+    }
+
+    .simple-chart {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: monospace;
+      min-height: 120px;
+    }
+
+    .config-section {
+      background: rgba(102, 126, 234, 0.05);
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    .config-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .config-item label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .config-item input, .config-item select {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #fff;
+      transition: border-color 0.2s ease;
+    }
+
+    .config-item input:focus, .config-item select:focus {
+      border-color: #667eea;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    .advanced-options {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 2px dashed rgba(102, 126, 234, 0.3);
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      border-radius: 5px;
+      transition: background-color 0.2s ease;
+    }
+
+    .checkbox-item:hover {
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .checkbox-item input {
+      width: auto !important;
+      margin-right: 0.7rem;
+      transform: scale(1.1);
+    }
+
+    .checkbox-item label {
+      margin-bottom: 0 !important;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .progress-bar.training-active {
+      animation: progressPulse 2s infinite;
+    }
+
+    @keyframes progressPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+
+    .download-section {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      text-align: center;
+      color: white;
+    }
+
+    .checkpoint-alert {
+      background: rgba(40, 167, 69, 0.2);
+      border: 1px solid rgba(40, 167, 69, 0.4);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      color: #155724;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+      }
+
+      .config-row {
+        grid-template-columns: 1fr;
+      }
+
+      .checkbox-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -38,7 +270,7 @@
 <div class="container-fluid px-4 py-5">
   <div class="row g-4 justify-content-center max-width-container mx-auto">
 
-    {# Seção 1: Status, Métricas e Qualidade do Dataset (UNIFICADO E DETALHADO) #}
+    <!-- Seção 1: Status e Qualidade do Dataset (MANTÉM ESTRUTURA ORIGINAL) -->
     <div class="col-12 col-lg-9">
       <div class="feature-card card-primary animate__animated animate__fadeInUp mb-4">
         <div class="card-glow card-glow-primary"></div>
@@ -47,12 +279,12 @@
             <i class="bi bi-folder-check"></i>
             <div class="icon-pulse"></div>
           </div>
-          <h3 class="feature-title">Status e Detalhes do Dataset</h3>
+          <h3 class="feature-title">Status e Qualidade do Dataset</h3>
           <p class="feature-description mb-4">
-            Verifique abaixo o estado do seu dataset, métricas gerais e informações sobre a qualidade do áudio, fundamentais para um treinamento eficaz.
+            Verifique abaixo o estado do seu dataset, fundamental para iniciar o treinamento do modelo, e entenda a importância da qualidade do áudio.
           </p>
 
-          {# Mensagens Flashed #}
+          <!-- Mensagens Flashed -->
           {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                   <div class="mb-4">
@@ -68,71 +300,27 @@
 
           <hr class="my-5 border-3">
 
-          {# Informações sobre o status do dataset #}
-          {% if dataset_exists and dataset_info %}
+          <!-- Informações sobre o status do dataset -->
+          {% if dataset_exists %}
               <div class="alert-custom alert-success animate__animated animate__fadeInUp mb-4">
                   <div class="toast-content">
                     <i class="bi bi-check-circle-fill me-2"></i>
                     <div>
                       <h4 class="alert-heading fw-bold mb-1">Dataset Carregado e Pronto!</h4>
-                      <p class="mb-0">Seu dataset foi carregado e verificado com sucesso. Detalhes:</p>
+                      <p class="mb-0">Excelente! Seu dataset foi carregado e verificado com sucesso.</p>
+                      <p class="mb-0 mt-2">Continue lendo para entender os parâmetros de qualidade do áudio.</p>
                     </div>
                   </div>
               </div>
 
-              {# Visão Geral do Dataset #}
-              <div class="mt-4 mb-5 pt-3 border-top border-2 border-light">
-                  <h4 class="feature-title text-center mb-4"><i class="bi bi-bar-chart-fill me-2 text-info"></i>Visão Geral do Dataset</h4>
-                  <div class="row text-center gy-4">
-                      <div class="col-md-4">
-                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
-                              <i class="bi bi-file-earmark-music-fill text-primary display-5 mb-2"></i>
-                              <h5 class="fw-bold mb-1">Amostras</h5>
-                              <p class="mb-0 text-muted">{{ dataset_info.num_samples | default('N/A') }}</p>
-                          </div>
-                      </div>
-                      <div class="col-md-4">
-                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
-                              <i class="bi bi-hdd-fill text-success display-5 mb-2"></i>
-                              <h5 class="fw-bold mb-1">Tamanho Total</h5>
-                              <p class="mb-0 text-muted">{{ "%.2f" | format(dataset_info.total_size_mb) | default('N/A') }} MB</p>
-                          </div>
-                      </div>
-                      <div class="col-md-4">
-                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
-                              <i class="bi bi-clock-fill text-warning display-5 mb-2"></i>
-                              <h5 class="fw-bold mb-1">Duração Total</h5>
-                              <p class="mb-0 text-muted">{{ "%.1f" | format(dataset_info.total_duration_minutes) | default('N/A') }} min</p>
-                          </div>
-                      </div>
-                  </div>
-                  <div class="row text-center mt-4">
-                      <div class="col-md-6">
-                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
-                              <i class="bi bi-soundwave text-danger display-5 mb-2"></i>
-                              <h5 class="fw-bold mb-1">Taxa de Amostragem</h5>
-                              <p class="mb-0 text-muted">{{ dataset_info.sample_rate | default('N/A') }}</p>
-                          </div>
-                      </div>
-                      <div class="col-md-6">
-                          <div class="stat-box p-3 border rounded-3 bg-light shadow-sm h-100">
-                              <i class="bi bi-file-earmark-music-fill text-info display-5 mb-2"></i>
-                              <h5 class="fw-bold mb-1">Formatos Comuns</h5>
-                              <p class="mb-0 text-muted">{{ dataset_info.format | default('N/A') }}</p>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-
-
-              {# Subseção de Parâmetros de Qualidade do Áudio Detalhados #}
+              <!-- Subseção de Parâmetros de Qualidade do Áudio - APENAS SE O DATASET EXISTIR -->
               <div class="mt-5 pt-4 border-top border-3 border-secondary">
                   <div class="feature-icon icon-tertiary mx-auto mb-4">
-                      <i class="bi bi-bar-chart-line-fill"></i>
+                      <i class="bi bi-file-earmark-bar-graph-fill"></i>
                   </div>
-                  <h4 class="feature-title text-center mb-4">Análise de Qualidade do Áudio</h4>
+                  <h4 class="feature-title text-center mb-4">Parâmetros de Qualidade do Áudio</h4>
                   <p class="feature-description mb-4 text-center">
-                      A performance do seu modelo é diretamente influenciada pela qualidade do áudio no dataset. Nossas métricas detalhadas são:
+                      A performance do seu modelo é diretamente influenciada pela qualidade do áudio no dataset. Nosso processo de análise considera:
                   </p>
 
                   <div class="audio-quality-pipeline">
@@ -145,25 +333,25 @@
                               </ul>
                           </li>
                           <li class="list-group-item">
-                              <h5 class="fw-bold mb-1"><i class="bi bi-waveform me-2 text-warning"></i>Métricas Técnicas</h5>
+                              <h5 class="fw-bold mb-1"><i class="bi bi-waveform me-2 text-warning"></i>Análise Técnica Abrangente</h5>
                               <ul class="list-unstyled mb-0 ms-3">
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Clipping (distorção): <span class="fw-bold">{{ dataset_info.quality_metrics.clipping | default('N/A') }}</span></li>
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>SNR (Signal-to-Noise Ratio): <span class="fw-bold">{{ dataset_info.quality_metrics.snr_avg | default('N/A') }}</span></li>
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Silence Ratio (proporção de silêncio): <span class="fw-bold">{{ dataset_info.quality_metrics.silence_ratio_avg | default('N/A') }}</span></li>
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Dynamic Range (faixa dinâmica): <span class="fw-bold">{{ dataset_info.quality_metrics.dynamic_range_avg | default('N/A') }}</span></li>
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Bandwidth (Faixa de frequências): <span class="fw-bold">{{ dataset_info.quality_metrics.bandwidth_avg | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Clipping (distorção)</li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>SNR (Signal-to-Noise Ratio)</li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Silence Ratio (proporção de silêncio)</li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Dynamic Range (faixa dinâmica)</li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Bandwidth (Faixa de frequências)</li>
                               </ul>
                           </li>
                           <li class="list-group-item">
-                              <h5 class="fw-bold mb-1"><i class="bi bi-ear-fill me-2 text-danger"></i>Métricas Perceptuais <small class="text-muted">(Qualidade Humana)</small></h5>
+                              <h5 class="fw-bold mb-1"><i class="bi bi-ear-fill me-2 text-danger"></i>Análise Perceptual <small class="text-muted">(Opcional, com referência)</small></h5>
                               <ul class="list-unstyled mb-0 ms-3">
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>PESQ (Perceptual Evaluation of Speech Quality): <span class="fw-bold">{{ dataset_info.quality_metrics.pesq_avg | default('N/A') }}</span></li>
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>STOI (Short-Time Objective Intelligibility): <span class="fw-bold">{{ dataset_info.quality_metrics.stoi_avg | default('N/A') }}</span></li>
-                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>SI-SDR (Scale-Invariant Signal-to-Distortion Ratio): <span class="fw-bold">{{ dataset_info.quality_metrics.si_sdr_avg | default('N/A') }}</span></li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>PESQ (Perceptual Evaluation of Speech Quality)</li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>STOI (Short-Time Objective Intelligibility)</li>
+                                  <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>SI-SDR (Scale-Invariant Signal-to-Distortion Ratio)</li>
                               </ul>
                           </li>
                           <li class="list-group-item">
-                              <h5 class="fw-bold mb-1"><i class="bi bi-file-earmark-text-fill me-2 text-secondary"></i>Relatórios Detalhados</h5>
+                              <h5 class="fw-bold mb-1"><i class="bi bi-file-earmark-text-fill me-2 text-secondary"></i>Geração de Relatórios Detalhados</h5>
                               <ul class="list-unstyled mb-0 ms-3">
                                   <li><i class="bi bi-arrow-right-short me-2 text-primary"></i>Disponível em JSON, PDF ou via API Response</li>
                               </ul>
@@ -199,7 +387,7 @@
       </div>
     </div>
 
-    {# Seção 2: Iniciar Treinamento do Modelo AI #}
+    <!-- Seção 2: ENHANCED - Iniciar Treinamento do Modelo AI -->
     <div class="col-12 col-lg-9">
       <div class="feature-card card-success animate__animated animate__fadeInUp mb-4">
         <div class="card-glow card-glow-success"></div>
@@ -208,28 +396,200 @@
             <i class="bi bi-cpu"></i>
             <div class="icon-pulse"></div>
           </div>
-          <h3 class="feature-title">Iniciar Treinamento do Modelo AI</h3>
+          <h3 class="feature-title">Configuração e Treinamento do Modelo AI</h3>
           <p class="feature-description mb-4">
-            Com seu dataset pronto, agora é a hora de iniciar o processo de treinamento!
+            Configure os parâmetros avançados do modelo e inicie o processo de treinamento com monitoramento em tempo real.
           </p>
 
           <hr class="my-5 border-3">
 
           {% if dataset_exists %}
-              <div class="action-buttons mt-4">
+              <!-- ENHANCED: Advanced Training Configuration -->
+              <div class="config-section">
+                  <h4 class="mb-3"><i class="bi bi-gear-fill me-2"></i>Configuração Avançada do Treinamento</h4>
+
                   <form id="trainForm" action="{{ url_for('train') }}" method="post">
-                      <button type="submit" class="btn-success-custom w-100 py-3 animate__animated animate__pulse animate__infinite">
-                          <span class="btn-content">
-                            <i class="bi bi-play-circle-fill me-2"></i>Iniciar Treinamento Agora
-                          </span>
-                          <div class="btn-ripple"></div>
-                      </button>
+                      <!-- Basic Configuration -->
+                      <div class="config-row">
+                          <div class="config-item">
+                              <label for="architecture"><i class="bi bi-diagram-3 me-1"></i> Arquitetura do Modelo</label>
+                              <select id="architecture" name="architecture">
+                                  <option value="advanced_cnn_lstm">CNN-LSTM Avançado (Recomendado)</option>
+                                  <option value="transformer">Transformer (Experimental)</option>
+                                  <option value="efficientnet_temporal">EfficientNet Temporal</option>
+                              </select>
+                              <small class="text-muted">CNN-LSTM combina extração de features com modelagem temporal</small>
+                          </div>
+
+                          <div class="config-item">
+                              <label for="epochs"><i class="bi bi-arrow-repeat me-1"></i> Número de Épocas</label>
+                              <input type="number" id="epochs" name="epochs" value="100" min="1" max="1000" step="1">
+                              <small class="text-muted">Recomendado: 50-200 épocas</small>
+                          </div>
+                      </div>
+
+                      <div class="config-row">
+                          <div class="config-item">
+                              <label for="batch_size"><i class="bi bi-grid me-1"></i> Tamanho do Batch</label>
+                              <select id="batch_size" name="batch_size">
+                                  <option value="16">16 (Conservador)</option>
+                                  <option value="32" selected>32 (Balanceado)</option>
+                                  <option value="64">64 (Rápido)</option>
+                                  <option value="128">128 (GPU Potente)</option>
+                              </select>
+                          </div>
+
+                          <div class="config-item">
+                              <label for="learning_rate"><i class="bi bi-speedometer me-1"></i> Taxa de Aprendizado</label>
+                              <select id="learning_rate" name="learning_rate">
+                                  <option value="0.0001">0.0001 (Conservador)</option>
+                                  <option value="0.001" selected>0.001 (Padrão)</option>
+                                  <option value="0.01">0.01 (Agressivo)</option>
+                              </select>
+                          </div>
+                      </div>
+
+                      <div class="config-row">
+                          <div class="config-item">
+                              <label for="dropout_rate"><i class="bi bi-shield-check me-1"></i> Taxa de Dropout: <span id="dropout_value" class="fw-bold">0.3</span></label>
+                              <input type="range" id="dropout_rate" name="dropout_rate" min="0.1" max="0.7" step="0.1" value="0.3">
+                              <small class="text-muted">Previne overfitting (0.1 = baixo, 0.7 = alto)</small>
+                          </div>
+
+                          <div class="config-item">
+                              <label for="cv_folds"><i class="bi bi-shuffle me-1"></i> Folds para Validação Cruzada</label>
+                              <input type="number" id="cv_folds" name="cv_folds" value="5" min="2" max="10" step="1">
+                              <small class="text-muted">Mais folds = melhor validação, mas mais lento</small>
+                          </div>
+                      </div>
+
+                      <!-- Advanced Options -->
+                      <div class="advanced-options">
+                          <h5 class="mb-3"><i class="bi bi-tools me-2"></i>Opções Avançadas</h5>
+                          <div class="checkbox-grid">
+                              <div class="checkbox-item">
+                                  <input type="checkbox" id="use_cross_validation" name="use_cross_validation" checked>
+                                  <label for="use_cross_validation">Validação Cruzada</label>
+                              </div>
+                              <div class="checkbox-item">
+                                  <input type="checkbox" id="use_mixed_precision" name="use_mixed_precision" checked>
+                                  <label for="use_mixed_precision">Precisão Mista (GPU)</label>
+                              </div>
+                              <div class="checkbox-item">
+                                  <input type="checkbox" id="enable_augmentation" name="enable_augmentation" checked>
+                                  <label for="enable_augmentation">Augmentação de Dados</label>
+                              </div>
+                              <div class="checkbox-item">
+                                  <input type="checkbox" id="use_cosine_annealing" name="use_cosine_annealing" checked>
+                                  <label for="use_cosine_annealing">Cosine Annealing LR</label>
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Submit Button -->
+                      <div class="text-center mt-4">
+                          <button type="submit" class="btn-success-custom py-3 px-5">
+                              <span class="btn-content">
+                                <i class="bi bi-play-circle-fill me-2"></i>Iniciar Treinamento Avançado
+                              </span>
+                              <div class="btn-ripple"></div>
+                          </button>
+                      </div>
                   </form>
+
                   <div id="training-spinner" class="text-center mt-3 d-none animate__animated animate__fadeIn">
                       <div class="loading-spinner" style="width: 3rem; height: 3rem;"></div>
                       <p class="mt-2 text-muted loading-text-small">Preparando o ambiente e iniciando o treinamento...</p>
                   </div>
               </div>
+
+              <!-- ENHANCED: Training Progress Feedback Area -->
+              <div id="trainingFeedbackArea" class="training-feedback-area d-none">
+                  <!-- Phase Indicator -->
+                  <div class="phase-indicator">
+                      <div class="phase-icon">
+                          <i class="bi bi-cogs"></i>
+                      </div>
+                      <div>
+                          <h5 class="mb-1" id="phaseTitle">Iniciando Treinamento...</h5>
+                          <small id="phaseDescription">Preparando ambiente e dados</small>
+                      </div>
+                  </div>
+
+                  <!-- Main Progress Bar -->
+                  <div class="progress-container">
+                      <div class="progress">
+                          <div id="trainingProgressBar" class="progress-bar bg-info training-active"
+                               role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                      </div>
+                  </div>
+
+                  <!-- Status Display -->
+                  <div class="text-center mb-3">
+                      <h6 id="trainingStatus">Aguardando início...</h6>
+                  </div>
+
+                  <!-- Enhanced Metrics Grid -->
+                  <div class="metrics-grid">
+                      <div class="metric-card">
+                          <div class="metric-label">Época</div>
+                          <div class="metric-value" id="epochCounter">0/0</div>
+                      </div>
+                      <div class="metric-card">
+                          <div class="metric-label">Loss</div>
+                          <div class="metric-value" id="lossDisplay">-</div>
+                      </div>
+                      <div class="metric-card">
+                          <div class="metric-label">Acurácia</div>
+                          <div class="metric-value" id="accuracyDisplay">-</div>
+                      </div>
+                      <div class="metric-card">
+                          <div class="metric-label">Learning Rate</div>
+                          <div class="metric-value" id="learningRateDisplay">-</div>
+                      </div>
+                      <div class="metric-card">
+                          <div class="metric-label">Tempo</div>
+                          <div class="metric-value" id="timeElapsedDisplay">00:00:00</div>
+                      </div>
+                      <div class="metric-card">
+                          <div class="metric-label">ETA</div>
+                          <div class="metric-value" id="etaDisplay">-</div>
+                      </div>
+                  </div>
+
+                  <!-- Validation and Cross-Validation Results -->
+                  <div class="row">
+                      <div class="col-md-6">
+                          <h6><i class="bi bi-chart-line me-2"></i>Métricas de Validação</h6>
+                          <div id="validationMetrics" class="validation-metrics">
+                              <div class="text-center text-muted">Aguardando dados...</div>
+                          </div>
+                      </div>
+                      <div class="col-md-6">
+                          <h6><i class="bi bi-sync-alt me-2"></i>Validação Cruzada</h6>
+                          <div id="crossValidationResults" class="cv-results">
+                              <div class="text-center text-muted">Não iniciada</div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <!-- Simple Training Chart -->
+                  <div class="mt-3">
+                      <h6><i class="bi bi-graph-up me-2"></i>Evolução das Métricas</h6>
+                      <div id="metricsChart" class="simple-chart">
+                          <div class="text-center text-muted">Aguardando dados de treinamento...</div>
+                      </div>
+                  </div>
+
+                  <!-- Checkpoint Notifications -->
+                  <div id="checkpointIndicator"></div>
+
+                  <!-- Download Section (shown after completion) -->
+                  <div id="downloadContainer" class="download-section d-none">
+                      <!-- Will be populated by JavaScript -->
+                  </div>
+              </div>
+
           {% else %}
               <div class="alert-custom alert-info animate__animated animate__fadeInDown mb-4">
                   <div class="toast-content">
@@ -237,7 +597,7 @@
                     <div>
                       <h4 class="alert-heading fw-bold mb-1">Dataset Necessário para Treinar</h4>
                       <p class="mb-0">Para habilitar o botão de treinamento, você precisa ter um dataset carregado e verificado.</p>
-                      <p class="mb-0 mt-2">Consulte a seção "Status e Detalhes do Dataset" acima para mais informações.</p>
+                      <p class="mb-0 mt-2">Consulte a seção "Status e Qualidade do Dataset" acima para mais detalhes.</p>
                     </div>
                   </div>
               </div>
@@ -247,7 +607,7 @@
       </div>
     </div>
 
-    {# Seção 3: Sobre o Modelo DeepAudio AI #}
+    <!-- Seção 3: Sobre o Modelo DeepAudio AI (MANTÉM ESTRUTURA ORIGINAL) -->
     <div class="col-12 col-lg-9">
       <div class="feature-card card-secondary animate__animated animate__fadeInUp mb-4">
           <div class="card-glow card-glow-secondary"></div>
@@ -264,18 +624,39 @@
                   <div class="col-md-6 mb-4">
                       <div class="p-4 border rounded-3 bg-light shadow-sm h-100 d-flex flex-column justify-content-between">
                           <i class="bi bi-lightbulb-fill text-warning display-4 mb-3"></i>
-                          <h4 class="fw-bold mb-3 feature-title-small">Arquitetura do Modelo</h4>
+                          <h4 class="fw-bold mb-3 feature-title-small">Arquiteturas Avançadas</h4>
                           <p class="text-muted feature-description-small">
-                              Nosso modelo emprega uma arquitetura de Redes Neurais Convolucionais (CNNs) especializada em processamento de áudio, otimizada para identificar padrões complexos em espectrogramas.
+                              Oferecemos múltiplas arquiteturas: CNN-LSTM para modelagem temporal, Transformer para atenção global, e EfficientNet para eficiência computacional.
                           </p>
                       </div>
                   </div>
                   <div class="col-md-6 mb-4">
                       <div class="p-4 border rounded-3 bg-light shadow-sm h-100 d-flex flex-column justify-content-between">
                           <i class="bi bi-tools text-primary display-4 mb-3"></i>
-                          <h4 class="fw-bold mb-3 feature-title-small">Estratégias de Treinamento</h4>
+                          <h4 class="fw-bold mb-3 feature-title-small">Estratégias Modernas</h4>
                           <p class="text-muted feature-description-small">
-                              Utilizamos *transfer learning* para acelerar o aprendizado e *data augmentation* para aumentar a robustez do modelo, garantindo alta precisão em diversas variações de áudio.
+                              Implementamos validação cruzada, mixed precision training, data augmentation e cosine annealing para maximizar performance e eficiência.
+                          </p>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="row text-center mt-3">
+                  <div class="col-md-6 mb-4">
+                      <div class="p-4 border rounded-3 bg-light shadow-sm h-100 d-flex flex-column justify-content-between">
+                          <i class="bi bi-graph-up text-success display-4 mb-3"></i>
+                          <h4 class="fw-bold mb-3 feature-title-small">Monitoramento em Tempo Real</h4>
+                          <p class="text-muted feature-description-small">
+                              Acompanhe métricas de loss, acurácia, learning rate e ETA em tempo real, com gráficos e indicadores visuais de progresso durante todo o treinamento.
+                          </p>
+                      </div>
+                  </div>
+                  <div class="col-md-6 mb-4">
+                      <div class="p-4 border rounded-3 bg-light shadow-sm h-100 d-flex flex-column justify-content-between">
+                          <i class="bi bi-shield-check text-info display-4 mb-3"></i>
+                          <h4 class="fw-bold mb-3 feature-title-small">Robustez e Qualidade</h4>
+                          <p class="text-muted feature-description-small">
+                              Callbacks avançados, early stopping, model checkpoints e estimativa de incerteza garantem modelos de alta qualidade e performance robusta.
                           </p>
                       </div>
                   </div>
@@ -287,7 +668,7 @@
   </div>
 </div>
 
-{# Loading Overlay Personalizado #}
+<!-- Loading Overlay Personalizado (MANTÉM ESTRUTURA ORIGINAL) -->
 <div class="loading-overlay" id="customLoadingOverlay">
   <div class="loading-content">
     <div class="loading-spinner"></div>
@@ -296,73 +677,271 @@
   </div>
 </div>
 
-{# Estilos CSS Avançados #}
+<!-- Enhanced CSS and Animation Styles -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
+
+<!-- Enhanced Training JavaScript -->
+<script src="{{ url_for('static', filename='js/train.js') }}"></script>
+
+<!-- Additional Enhanced Features Script -->
 <script>
+// Enhanced functionality while maintaining compatibility
 document.addEventListener('DOMContentLoaded', function() {
-    const trainForm = document.getElementById('trainForm');
-    const trainingSpinner = document.getElementById('training-spinner');
-    const loadingOverlay = document.getElementById('customLoadingOverlay');
-    const loadingText = loadingOverlay ? loadingOverlay.querySelector('.loading-text') : null;
-    const loadingSubtitle = loadingOverlay ? loadingOverlay.querySelector('.loading-subtitle') : null;
+    // Enhanced form interactions
+    initializeEnhancedFormFeatures();
 
-    if (trainForm && trainingSpinner && loadingOverlay) {
-        trainForm.addEventListener('submit', function(event) {
-            event.preventDefault();
+    // Enhanced toast system
+    initializeEnhancedToasts();
 
-            this.querySelector('button[type="submit"]').classList.add('d-none');
-            trainingSpinner.classList.remove('d-none');
+    // Enhanced validation
+    initializeFormValidation();
+});
 
-            loadingOverlay.style.display = 'flex';
-            if (loadingText) loadingText.textContent = 'Iniciando Treinamento do Modelo...';
-            if (loadingSubtitle) loadingSubtitle.textContent = 'Processando dados, otimizando parâmetros e preparando o ambiente. Por favor, aguarde.';
+function initializeEnhancedFormFeatures() {
+    // Update dropout value display
+    const dropoutRange = document.getElementById('dropout_rate');
+    const dropoutValue = document.getElementById('dropout_value');
 
-            fetch(trainForm.action, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => {
-                const clonedResponse = response.clone();
-                if (!response.ok) {
-                    return clonedResponse.json().then(errorData => {
-                        throw new Error(errorData.message || 'Ocorreu um erro no servidor.');
-                    }).catch(() => {
-                        return clonedResponse.text().then(text => {
-                            throw new Error(text || 'Erro de rede ou resposta inesperada do servidor.');
-                        });
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    window.showToast(data.message || 'Treinamento iniciado com sucesso! Você será notificado sobre o progresso.', 'success');
-                } else {
-                    window.showToast(data.message || 'Falha ao iniciar o treinamento. Tente novamente mais tarde.', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Erro ao enviar formulário de treinamento:', error);
-                window.showToast(`Erro: ${error.message}` || 'Erro de conexão ao tentar iniciar o treinamento. Verifique sua rede.', 'error');
-            })
-            .finally(() => {
-                loadingOverlay.style.display = 'none';
-                const submitButton = trainForm.querySelector('button[type="submit"]');
-                if (submitButton) {
-                    submitButton.classList.remove('d-none');
-                }
-                trainingSpinner.classList.add('d-none');
-            });
+    if (dropoutRange && dropoutValue) {
+        dropoutRange.addEventListener('input', function() {
+            dropoutValue.textContent = this.value;
+
+            // Visual feedback for dropout value
+            const color = this.value < 0.3 ? '#28a745' : this.value < 0.5 ? '#ffc107' : '#dc3545';
+            dropoutValue.style.color = color;
         });
+    }
+
+    // Enhanced architecture selection
+    const architectureSelect = document.getElementById('architecture');
+    if (architectureSelect) {
+        architectureSelect.addEventListener('change', function() {
+            const descriptions = {
+                'advanced_cnn_lstm': 'Combina CNNs para extração de features com LSTMs bidirecionais para modelagem temporal. Ideal para dados de áudio sequenciais.',
+                'transformer': 'Arquitetura baseada em atenção multi-head. Excelente para capturar dependências de longo prazo, mas requer mais recursos.',
+                'efficientnet_temporal': 'EfficientNet otimizado para dados temporais. Balanceia eficiência computacional com alta precisão.'
+            };
+
+            const description = descriptions[this.value];
+            if (description) {
+                // Show description as tooltip or update help text
+                this.title = description;
+                console.log(`Arquitetura selecionada: ${this.value} - ${description}`);
+            }
+        });
+
+        // Trigger initial description
+        architectureSelect.dispatchEvent(new Event('change'));
+    }
+
+    // Enhanced checkbox interactions
+    const checkboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const label = this.nextElementSibling;
+            const checkboxItem = this.closest('.checkbox-item');
+
+            if (this.checked) {
+                label.style.color = '#28a745';
+                label.style.fontWeight = 'bold';
+                checkboxItem.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+            } else {
+                label.style.color = '';
+                label.style.fontWeight = '';
+                checkboxItem.style.backgroundColor = '';
+            }
+        });
+
+        // Initialize state
+        checkbox.dispatchEvent(new Event('change'));
+    });
+
+    // Enhanced epochs input validation
+    const epochsInput = document.getElementById('epochs');
+    if (epochsInput) {
+        epochsInput.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            const helpText = this.nextElementSibling;
+
+            if (value < 10) {
+                helpText.textContent = 'Muito baixo - pode não convergir';
+                helpText.style.color = '#dc3545';
+            } else if (value <= 50) {
+                helpText.textContent = 'Adequado para testes rápidos';
+                helpText.style.color = '#ffc107';
+            } else if (value <= 200) {
+                helpText.textContent = 'Recomendado para melhor performance';
+                helpText.style.color = '#28a745';
+            } else {
+                helpText.textContent = 'Muito alto - pode causar overfitting';
+                helpText.style.color = '#dc3545';
+            }
+        });
+
+        epochsInput.dispatchEvent(new Event('input'));
+    }
+}
+
+function initializeEnhancedToasts() {
+    // Enhanced toast notification system
+    if (!window.showToast) {
+        window.showToast = function(message, type = 'info') {
+            // Create toast if it doesn't exist
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '11000';
+                document.body.appendChild(toastContainer);
+            }
+
+            const toastId = 'toast-' + Date.now();
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = 'toast';
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+
+            const iconClasses = {
+                success: 'bi-check-circle-fill text-success',
+                error: 'bi-exclamation-circle-fill text-danger',
+                warning: 'bi-exclamation-triangle-fill text-warning',
+                info: 'bi-info-circle-fill text-primary'
+            };
+
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <i class="bi ${iconClasses[type] || iconClasses.info} me-2"></i>
+                    <strong class="me-auto">Sistema de Treinamento</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">${message}</div>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            // Show toast
+            if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+                const bsToast = new bootstrap.Toast(toast, {
+                    autohide: type !== 'error',
+                    delay: type === 'success' ? 3000 : 5000
+                });
+                bsToast.show();
+
+                // Remove from DOM after hiding
+                toast.addEventListener('hidden.bs.toast', function() {
+                    toast.remove();
+                });
+            } else {
+                // Fallback without Bootstrap
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, type === 'error' ? 5000 : 3000);
+            }
+        };
+    }
+}
+
+function initializeFormValidation() {
+    const trainForm = document.getElementById('trainForm');
+    if (trainForm) {
+        trainForm.addEventListener('submit', function(e) {
+            // Enhanced validation
+            const epochs = parseInt(document.getElementById('epochs').value);
+            const batchSize = parseInt(document.getElementById('batch_size').value);
+            const cvFolds = parseInt(document.getElementById('cv_folds').value);
+            const useCrossValidation = document.getElementById('use_cross_validation').checked;
+
+            let validationErrors = [];
+
+            if (epochs < 1 || epochs > 1000) {
+                validationErrors.push('O número de épocas deve estar entre 1 e 1000');
+            }
+
+            if (batchSize < 1 || batchSize > 256) {
+                validationErrors.push('O tamanho do batch deve estar entre 1 e 256');
+            }
+
+            if (useCrossValidation && (cvFolds < 2 || cvFolds > 10)) {
+                validationErrors.push('O número de folds deve estar entre 2 e 10');
+            }
+
+            if (validationErrors.length > 0) {
+                e.preventDefault();
+                window.showToast('Erro de validação: ' + validationErrors.join(', '), 'error');
+                return false;
+            }
+
+            // Show configuration summary
+            const config = {
+                architecture: document.getElementById('architecture').value,
+                epochs: epochs,
+                batch_size: batchSize,
+                learning_rate: document.getElementById('learning_rate').value,
+                dropout_rate: document.getElementById('dropout_rate').value,
+                use_cross_validation: useCrossValidation,
+                cv_folds: cvFolds,
+                use_mixed_precision: document.getElementById('use_mixed_precision').checked,
+                enable_augmentation: document.getElementById('enable_augmentation').checked,
+                use_cosine_annealing: document.getElementById('use_cosine_annealing').checked
+            };
+
+            console.log('Configuração do treinamento:', config);
+
+            // Show confirmation for long training sessions
+            if (epochs > 100) {
+                const confirmMessage = `Você está prestes a iniciar um treinamento com ${epochs} épocas. Isso pode levar várias horas. Deseja continuar?`;
+                if (!confirm(confirmMessage)) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+    }
+}
+
+// Utility functions for formatting
+window.formatNumber = function(num, decimals = 2) {
+    if (typeof num !== 'number' || isNaN(num)) return 'N/A';
+    return num.toFixed(decimals);
+};
+
+window.formatTime = function(seconds) {
+    if (typeof seconds !== 'number' || isNaN(seconds)) return 'N/A';
+
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+        return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+        return `${minutes}m ${secs}s`;
+    } else {
+        return `${secs}s`;
+    }
+};
+
+// Enhanced error handling
+window.addEventListener('error', function(e) {
+    console.error('JavaScript error:', e.error);
+    if (window.showToast) {
+        window.showToast('Ocorreu um erro inesperado. Verifique o console para detalhes.', 'error');
+    }
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled promise rejection:', e.reason);
+    if (window.showToast) {
+        window.showToast('Erro de conexão ou processamento. Tente novamente.', 'error');
     }
 });
 </script>

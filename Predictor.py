@@ -8,14 +8,14 @@ from pathlib import Path
 from typing import List, Tuple, Union, Optional, Dict, Any
 import pickle
 from sklearn.preprocessing import LabelEncoder
+from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 
 # Importa as camadas customizadas do TrainModel
-# É crucial que essas camadas sejam definidas ou importadas aqui para que o Keras possa carregá-las
-from TrainModel import AudioFeatureNormalization, AttentionLayer  # Garante que as custom layers sejam carregadas
+from TrainModel import AudioFeatureNormalization, AttentionLayer
 
 # Configura logger para Predictor
 logger = logging.getLogger(__name__)
@@ -32,19 +32,20 @@ class ModelPredictor:
     Classe para carregar um modelo treinado e realizar predições de detecção de deepfake.
     """
 
-    def __init__(self, model_path: Union[str, Path]):
+    def __init__(self, model_path: Union[str, Path], label_encoder: Optional[LabelEncoder] = None):
         """
         Inicializa o ModelPredictor.
 
         Args:
             model_path (Union[str, Path]): Caminho para o diretório onde o modelo .h5 e o encoder .pkl estão salvos.
+            label_encoder (Optional[LabelEncoder]): LabelEncoder opcional para usar diretamente.
         """
         self.model_dir = Path(model_path)
         self.model: Optional[tf.keras.Model] = None
-        self.label_encoder: Optional[LabelEncoder] = None
+        self.label_encoder: Optional[LabelEncoder] = label_encoder
         self.model_loaded = False
 
-        # Dicionário para camadas customizadas. É crucial para o Keras carregar modelos com elas.
+        # Dicionário para camadas customizadas
         self.custom_objects = {
             'AudioFeatureNormalization': AudioFeatureNormalization,
             'AttentionLayer': AttentionLayer
@@ -53,18 +54,18 @@ class ModelPredictor:
         # Estas serão extraídas do input_shape do modelo carregado
         self.expected_frames: Optional[int] = None
         self.feature_dim: Optional[int] = None
-        self.model_input_rank: Optional[int] = None  # Rank (number of dimensions) expected by the model
+        self.model_input_rank: Optional[int] = None
 
-        self.load_model()  # Tenta carregar o modelo e o encoder na inicialização
+        self.load_model()
 
     def load_model(self):
         """
         Carrega o modelo Keras mais recente e o LabelEncoder do diretório especificado.
         Extrai expected_frames e feature_dim do input_shape do modelo.
         """
-        # Limpa o estado atual do modelo e encoder
         self.model = None
-        self.label_encoder = None
+        if self.label_encoder is None:
+            self.label_encoder = None
         self.expected_frames = None
         self.feature_dim = None
         self.model_input_rank = None
@@ -77,7 +78,19 @@ class ModelPredictor:
             return
 
         latest_model_path = model_files[0]
-        encoder_path = self.model_dir / "label_encoder.pkl"
+        # Extrai timestamp do nome do arquivo do modelo
+        timestamp = latest_model_path.stem.split('_')[-1]
+        encoder_path = self.model_dir / f"label_encoder_{timestamp}.pkl"
+
+        # Fallback para o LabelEncoder mais recente se não houver correspondência
+        if not encoder_path.exists():
+            logger.warning(f"LabelEncoder não encontrado em {encoder_path}. Buscando outro arquivo .pkl.")
+            encoder_files = sorted(self.model_dir.glob('label_encoder_*.pkl'), key=os.path.getmtime, reverse=True)
+            encoder_path = encoder_files[0] if encoder_files else None
+            if encoder_path:
+                logger.info(f"Usando LabelEncoder alternativo: {encoder_path}")
+            else:
+                logger.warning(f"Nenhum arquivo LabelEncoder (.pkl) encontrado em {self.model_dir}")
 
         try:
             # Carrega o modelo Keras
@@ -86,41 +99,40 @@ class ModelPredictor:
             logger.info(
                 f"Modelo '{latest_model_path.name}' carregado com sucesso. Input shape: {self.model.input_shape}")
 
-            # Extrair expected_frames e feature_dim do input_shape do modelo
-            # model.input_shape é (None, dim1, dim2, ...) onde None é o batch size
+            # Extrair expected_frames e feature_dim
             input_shape_no_batch = self.model.input_shape[1:]
             self.model_input_rank = len(input_shape_no_batch)
 
-            if self.model_input_rank == 2:  # (frames, feature_dim)
+            if self.model_input_rank == 2:
                 self.expected_frames = input_shape_no_batch[0]
                 self.feature_dim = input_shape_no_batch[1]
-            elif self.model_input_rank == 3:  # (frames, feature_dim, channels) - commonly (frames, feature_dim, 1)
+            elif self.model_input_rank == 3:
                 self.expected_frames = input_shape_no_batch[0]
                 self.feature_dim = input_shape_no_batch[1]
-                # Note: The last dimension (channels) is handled by reshape if needed.
             else:
-                logger.warning(f"Input shape do modelo ({self.model.input_shape}) inesperado. "
-                               f"Não foi possível extrair expected_frames e feature_dim automaticamente.")
-                # Fallback to manual setting or error handling if shape is crucial
+                logger.warning(
+                    f"Input shape do modelo ({self.model.input_shape}) inesperado. "
+                    f"Não foi possível extrair expected_frames e feature_dim automaticamente.")
 
             logger.info(
                 f"Dimensões do modelo extraídas: Expected Frames={self.expected_frames}, Feature Dim={self.feature_dim}")
 
-            # Carrega o LabelEncoder
-            if encoder_path.exists():
+            # Carrega o LabelEncoder se não foi fornecido
+            if self.label_encoder is None and encoder_path and encoder_path.exists():
                 with open(encoder_path, 'rb') as f:
                     self.label_encoder = pickle.load(f)
-                logger.info(f"LabelEncoder carregado com sucesso. Classes: {self.label_encoder.classes_}")
-            else:
-                logger.warning(f"LabelEncoder não encontrado em {encoder_path}. "
-                               f"As predições decodificadas podem ser imprecisas. Certifique-se de que 'FAKE' e 'REAL' estejam entre as classes 0 e 1, respectivamente.")
+                logger.info(f"LabelEncoder carregado com sucesso de '{encoder_path}'. Classes: {self.label_encoder.classes_}")
+            elif self.label_encoder is None:
+                logger.warning(
+                    f"LabelEncoder não carregado. As predições decodificadas podem ser imprecisas. "
+                    f"Certifique-se de que 'FAKE' e 'REAL' estejam entre as classes 0 e 1, respectivamente.")
 
         except Exception as e:
             logger.error(f"Erro ao carregar o modelo ou LabelEncoder de {self.model_dir}: {e}")
-            self.model_loaded = False  # Garante que o estado seja false em caso de falha
+            self.model_loaded = False
 
     def set_label_encoder(self, encoder: Optional[LabelEncoder]):
-        """Define o LabelEncoder a ser usado pelo preditor. Usado principalmente para testes ou injeção."""
+        """Define o LabelEncoder a ser usado pelo preditor."""
         self.label_encoder = encoder
         if self.label_encoder:
             logger.info(f"LabelEncoder definido. Classes: {self.label_encoder.classes_}")
@@ -433,36 +445,32 @@ if __name__ == "__main__":
     # Configurações dummy para teste
     DUMMY_MODEL_DIR = Path("dummy_model_artifacts_predictor")
     DUMMY_MODEL_DIR.mkdir(exist_ok=True)
-    DUMMY_MODEL_PATH = DUMMY_MODEL_DIR / "dummy_detector_model.h5"
-    DUMMY_ENCODER_PATH = DUMMY_MODEL_DIR / "label_encoder.pkl"
-    # Essas dimensões virão do modelo carregado agora
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    DUMMY_MODEL_PATH = DUMMY_MODEL_DIR / f"dummy_detector_model_{timestamp}.h5"
+    DUMMY_ENCODER_PATH = DUMMY_MODEL_DIR / f"label_encoder_{timestamp}.pkl"
     DUMMY_EXPECTED_FRAMES = 100
     DUMMY_FEATURE_DIM = 40
-    DUMMY_NUM_CLASSES = 2  # Ex: 'fake', 'real'
+    DUMMY_NUM_CLASSES = 2
 
     logger.info("\n--- Iniciando testes do Predictor.py ---")
 
-    # 1. Cria um modelo dummy para teste que simula o output do TrainModel
     try:
         from tensorflow.keras.models import Model
         from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization, \
             Reshape, GRU, Bidirectional
         from tensorflow.keras.optimizers import Adam
-        from tensorflow.keras import layers  # Importa layers para o Transformer
+        from tensorflow.keras import layers
         from TrainModel import AudioFeatureNormalization, AttentionLayer
 
-
-        # Função auxiliar para criar um modelo compatível com diferentes architectures
-        def create_dummy_model_for_predictor_test(input_shape_for_model, num_classes, architecture_type="cnn_gru"):
-            inputs = Input(shape=input_shape_for_model)
+        def create_dummy_model_for_predictor_test(input_shape, num_classes, architecture_type="cnn_gru"):
+            inputs = Input(shape=input_shape)
             x = AudioFeatureNormalization(axis=-1, name="audio_norm_layer")(inputs)
 
             if architecture_type == "cnn_gru":
-                # Ensure 4D for CNN
-                if len(input_shape_for_model) == 2:
-                    x = Reshape((input_shape_for_model[0], input_shape_for_model[1], 1), name="reshape_cnn_test")(x)
-                elif len(input_shape_for_model) == 3 and input_shape_for_model[-1] != 1:
-                    x = x[..., :1]  # Truncate to 1 channel for simplicity
+                if len(input_shape) == 2:
+                    x = Reshape((input_shape[0], input_shape[1], 1), name="reshape_cnn_test")(x)
+                elif len(input_shape) == 3 and input_shape[-1] != 1:
+                    x = x[..., :1]
 
                 x = Conv2D(32, (3, 3), activation='relu', padding='same', name="conv1_test")(x)
                 x = BatchNormalization(name="bn1_test")(x)
@@ -475,49 +483,38 @@ if __name__ == "__main__":
                 x = Dropout(0.2, name="dropout2_test")(x)
 
                 shape_before_gru = x.shape
-                x = Reshape((shape_before_gru[1], shape_before_gru[2] * shape_before_gru[3]),
-                            name="reshape_for_gru_test")(x)
-
+                x = Reshape((shape_before_gru[1], shape_before_gru[2] * shape_before_gru[3]), name="reshape_for_gru_test")(x)
                 x = GRU(64, return_sequences=True, name="gru_test")(x)
                 x = AttentionLayer(name="attention_layer_test")(x)
 
             elif architecture_type == "bidirectional_gru":
-                # Ensure 3D for Bi-GRU (remove channel dim if present)
-                if len(input_shape_for_model) == 3 and input_shape_for_model[-1] == 1:
-                    x = Reshape((input_shape_for_model[0], input_shape_for_model[1]), name="reshape_bi_gru_test")(x)
-                elif len(input_shape_for_model) == 2:
-                    pass  # Already 2D
+                if len(input_shape) == 3 and input_shape[-1] == 1:
+                    x = Reshape((input_shape[0], input_shape[1]), name="reshape_bi_gru_test")(x)
+                elif len(input_shape) == 2:
+                    pass
 
                 x = Bidirectional(GRU(64, return_sequences=True), name="bi_gru_test")(x)
                 x = AttentionLayer(name="attention_layer_test")(x)
 
             elif architecture_type == "transformer":
-                # Assume input_shape_for_model is already (frames, feature_dim) for transformer
-                # If it's (frames, feature_dim, 1), remove the channel dim
-                if len(input_shape_for_model) == 3 and input_shape_for_model[-1] == 1:
-                    x = Reshape((input_shape_for_model[0], input_shape_for_model[1]), name="reshape_transformer_test")(
-                        x)
-                elif len(input_shape_for_model) == 2:
+                if len(input_shape) == 3 and input_shape[-1] == 1:
+                    x = Reshape((input_shape[0], input_shape[1]), name="reshape_transformer_test")(x)
+                elif len(input_shape) == 2:
                     pass
 
-                # Positional Encoding (simplificado)
-                seq_len_model = input_shape_for_model[0]
-                feature_dim_model = input_shape_for_model[1]
-                pos_encoding = layers.Embedding(seq_len_model, feature_dim_model)(tf.range(seq_len_model))
+                seq_len = input_shape[0]
+                feature_dim = input_shape[1]
+                pos_encoding = layers.Embedding(seq_len, feature_dim)(tf.range(seq_len))
                 x = x + pos_encoding
 
-                # Transformer Encoder Block
                 num_heads = 4
                 ff_dim = 64
-                attn_output = layers.MultiHeadAttention(num_heads=num_heads, key_dim=feature_dim_model)(x, x)
+                attn_output = layers.MultiHeadAttention(num_heads=num_heads, key_dim=feature_dim)(x, x)
                 attn_output = layers.Dropout(0.2)(attn_output)
                 x = layers.LayerNormalization(epsilon=1e-6)(x + attn_output)
-
                 ff_output = layers.Dense(ff_dim, activation="relu")(x)
-                ff_output = layers.Dense(feature_dim_model)(ff_output)
-                ff_output = layers.Dropout(0.2)(ff_output)
+                ff_output = layers.Dense(feature_dim)(ff_output)
                 x = layers.LayerNormalization(epsilon=1e-6)(x + ff_output)
-
                 x = layers.GlobalAveragePooling1D(name="transformer_avg_pool_test")(x)
 
             else:
@@ -529,50 +526,40 @@ if __name__ == "__main__":
             outputs = Dense(num_classes, activation='softmax', name="output_layer_test")(x)
 
             model = Model(inputs=inputs, outputs=outputs)
-            model.compile(optimizer=Adam(learning_rate=0.001), loss='sparse_categorical_crossentropy',
-                          metrics=['accuracy'])
+            model.compile(optimizer=Adam(learning_rate=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
             return model
 
-
-        # Testar com diferentes arquiteturas
         test_architectures = {
-            "cnn_gru": (DUMMY_EXPECTED_FRAMES, DUMMY_FEATURE_DIM, 1),  # 4D input for CNN
+            "cnn_gru": (DUMMY_EXPECTED_FRAMES, DUMMY_FEATURE_DIM, 1),
             "bidirectional_gru": (DUMMY_EXPECTED_FRAMES, DUMMY_FEATURE_DIM, 1),
-            # 3D input for Bi-GRU (channel will be squeezed)
-            "transformer": (DUMMY_EXPECTED_FRAMES, DUMMY_FEATURE_DIM)  # 2D input for Transformer
+            "transformer": (DUMMY_EXPECTED_FRAMES, DUMMY_FEATURE_DIM)
         }
 
         for arch_name, arch_input_shape in test_architectures.items():
             print(f"\n--- Criando e testando modelo dummy para arquitetura: {arch_name} ---")
 
-            # Limpa o diretório de modelo dummy antes de cada teste de arquitetura
             if DUMMY_MODEL_DIR.exists():
                 shutil.rmtree(DUMMY_MODEL_DIR)
-            DUMMY_MODEL_DIR.mkdir(exist_ok=True)  # Recria
+            DUMMY_MODEL_DIR.mkdir(exist_ok=True)
 
             dummy_model = create_dummy_model_for_predictor_test(arch_input_shape, DUMMY_NUM_CLASSES, arch_name)
             logger.info(f"Resumo do Modelo Dummy para {arch_name}:")
             dummy_model.summary(print_fn=lambda x: logger.info(x))
 
-            # Adaptação da AudioFeatureNormalization para o modelo dummy
-            norm_layer_in_dummy_model = None
+            norm_layer = None
             for layer in dummy_model.layers:
                 if isinstance(layer, AudioFeatureNormalization):
-                    norm_layer_in_dummy_model = layer
+                    norm_layer = layer
                     break
-            if norm_layer_in_dummy_model:
-                # Criar dados dummy para adaptação com o shape esperado pelo layer
-                # O input_shape_for_model do create_dummy_model já inclui o canal se for 3D
-                if len(arch_input_shape) == 3:  # (frames, features, 1)
-                    dummy_adapt_data = np.random.rand(50, arch_input_shape[0], arch_input_shape[1],
-                                                      arch_input_shape[2]).astype(np.float32)
-                else:  # (frames, features)
+            if norm_layer:
+                if len(arch_input_shape) == 3:
+                    dummy_adapt_data = np.random.rand(50, arch_input_shape[0], arch_input_shape[1], arch_input_shape[2]).astype(np.float32)
+                else:
                     dummy_adapt_data = np.random.rand(50, arch_input_shape[0], arch_input_shape[1]).astype(np.float32)
-                norm_layer_in_dummy_model.adapt(dummy_adapt_data)
+                norm_layer.adapt(dummy_adapt_data)
                 logger.info("Camada AudioFeatureNormalization do modelo dummy adaptada.")
             else:
-                logger.warning(
-                    "Camada AudioFeatureNormalization não encontrada no modelo dummy. Pode causar problemas de carregamento.")
+                logger.warning("Camada AudioFeatureNormalization não encontrada no modelo dummy.")
 
             dummy_model.save(DUMMY_MODEL_PATH)
             logger.info(f"Modelo dummy para {arch_name} salvo em: {DUMMY_MODEL_PATH}")
@@ -583,14 +570,12 @@ if __name__ == "__main__":
                 pickle.dump(dummy_encoder, f)
             logger.info(f"LabelEncoder dummy salvo em: {DUMMY_ENCODER_PATH}")
 
-            # Agora, testa o ModelPredictor com este modelo dummy
             predictor_test = ModelPredictor(model_path=DUMMY_MODEL_DIR)
 
             if predictor_test.model_loaded:
                 logger.info(
                     f"Predictor carregado com sucesso para {arch_name}. Extraído: frames={predictor_test.expected_frames}, dim={predictor_test.feature_dim}")
 
-                # Gerar features dummy para predição, sempre em 3D para ser flexível (o _prepare_features_for_prediction vai ajustar)
                 single_features = np.random.rand(DUMMY_EXPECTED_FRAMES, DUMMY_FEATURE_DIM, 1).astype(np.float32)
                 long_features = np.random.rand(DUMMY_EXPECTED_FRAMES * 2, DUMMY_FEATURE_DIM, 1).astype(np.float32)
 
@@ -621,7 +606,6 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Erro fatal durante a criação ou teste de modelos dummy: {e}")
     finally:
-        # Limpa o diretório dummy após todos os testes
         if DUMMY_MODEL_DIR.exists():
             logger.info(f"\nRemovendo diretório dummy: {DUMMY_MODEL_DIR}")
             shutil.rmtree(DUMMY_MODEL_DIR)
